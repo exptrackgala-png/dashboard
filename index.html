@@ -1,461 +1,626 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gala Expiry Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>Gala · Expiry Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* ── THEME TOKENS ── */
-[data-theme="dark"]{
-  --bg:#07101f;--s1:#0e1a2e;--s2:#142038;--s3:#1c2d47;
-  --b1:#1e3a5f;--b2:#2a4d78;
-  --text:#ddeeff;--t2:#7fa8cc;--t3:#3d6080;
-  --card-bg:#0e1a2e;--table-alt:#0b1526;
+/* ════════════════════ TOKENS ════════════════════ */
+:root {
+  --bg:       #f5f4f0;
+  --surface:  #ffffff;
+  --surface2: #faf9f6;
+  --border:   #e8e5de;
+  --border2:  #d5d0c5;
+  --text:     #1c1a16;
+  --t2:       #6b6558;
+  --t3:       #b5af9e;
+  --ink:      #1c1a16;
+  --red:      #be2b2b;   --red-l:    #fdf1f1;
+  --orange:   #c26018;   --orange-l: #fef6ee;
+  --yellow:   #9a7a10;   --yellow-l: #fefbee;
+  --green:    #1a6635;   --green-l:  #eef7f2;
+  --blue:     #1a48a0;   --blue-l:   #eef2fc;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Sora', sans-serif;
+  --r: 10px; --rs: 6px;
 }
-[data-theme="light"]{
-  --bg:#f0f4f8;--s1:#ffffff;--s2:#f4f7fb;--s3:#e8eef6;
-  --b1:#d0dcec;--b2:#b0c4de;
-  --text:#1a2a3a;--t2:#4a6a8a;--t3:#8aa0b8;
-  --card-bg:#ffffff;--table-alt:#f7fafd;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
-:root{
-  --accent:#00d4aa;--a2:#0099ff;
-  --red:#ff4455;--orange:#ff8c42;--yellow:#fbbf24;--green:#10b981;
-  --r:10px;--rs:6px;--sb:212px;
-  transition:background .2s,color .2s;
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13.5px;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* ── SIDEBAR ── */
-.sidebar{width:var(--sb);min-height:100vh;background:var(--s1);border-right:1px solid var(--b1);
-  display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:300;transition:left .25s}
-.logo{padding:18px 16px 14px;border-bottom:1px solid var(--b1)}
-.logo-name{font-size:15px;font-weight:700;color:var(--accent)}
-.logo-sub{font-size:10px;color:var(--t3);margin-top:2px;letter-spacing:1px;text-transform:uppercase}
-.nav{padding:8px 0;flex:1}
-.nb{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;
-  background:none;border:none;border-left:3px solid transparent;
-  width:100%;text-align:left;color:var(--t2);font-family:'DM Sans',sans-serif;
-  font-size:12.5px;font-weight:500;transition:.15s;white-space:nowrap}
-.nb:hover{background:var(--s2);color:var(--text)}
-.nb.active{color:var(--accent);background:rgba(0,212,170,.07);border-left-color:var(--accent)}
-.ni{font-size:15px;width:18px;text-align:center;flex-shrink:0}
-.nsep{height:1px;background:var(--b1);margin:6px 16px}
-.sfoot{padding:10px 16px;border-top:1px solid var(--b1);font-size:10px;color:var(--t3)}
-.sfoot span{color:var(--accent);font-family:'DM Mono',monospace;display:block;margin-top:2px}
-/* theme toggle */
-.theme-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--b1)}
-.theme-lbl{font-size:11px;color:var(--t3)}
-.toggle{position:relative;width:36px;height:20px;cursor:pointer}
-.toggle input{opacity:0;width:0;height:0}
-.tslider{position:absolute;inset:0;background:var(--b2);border-radius:20px;transition:.25s}
-.tslider:before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;
-  background:#fff;border-radius:50%;transition:.25s}
-input:checked+.tslider{background:var(--accent)}
-input:checked+.tslider:before{transform:translateX(16px)}
-.theme-icon{font-size:13px}
-
-/* ── MAIN ── */
-.main{margin-left:var(--sb);min-height:100vh;display:flex;flex-direction:column;transition:margin-left .25s}
-.topbar{position:sticky;top:0;z-index:200;background:var(--s1);
-  border-bottom:1px solid var(--b1);padding:11px 20px;display:flex;align-items:center;gap:10px}
-[data-theme="dark"] .topbar{background:rgba(7,16,31,.94);backdrop-filter:blur(16px)}
-.menu-toggle{display:none;background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;padding:4px 8px}
-.topbar-title{font-size:16px;font-weight:600;flex:1}
-.topbar-sub{font-size:11px;color:var(--t3);margin-top:1px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;
-  border-radius:var(--rs);border:1px solid var(--b2);background:var(--s2);
-  color:var(--t2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:.15s;white-space:nowrap}
-.btn:hover{border-color:var(--accent);color:var(--accent)}
-.btn.spin .bi{animation:spin .7s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.content{padding:18px 20px;flex:1}
-.page{display:none}
-.page.active{display:block;animation:fadeUp .22s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
-
-/* ── STATUS BAR ── */
-.sbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.sc{display:flex;align-items:center;gap:8px;padding:8px 13px;
-  border-radius:var(--rs);background:var(--s1);border:1px solid var(--b1);font-size:11.5px;flex:1;min-width:220px}
-.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.sdot.ok{background:var(--green);box-shadow:0 0 6px var(--green)}
-.sdot.err{background:var(--red);box-shadow:0 0 6px var(--red)}
-.sdot.loading{background:var(--yellow);animation:pulse .8s ease infinite}
-@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
-.si{color:var(--t2);min-width:0;overflow:hidden}
-.si strong{color:var(--text)}
-
-/* ── FILTERS ── */
-.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;
-  background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:12px 16px;margin-bottom:14px}
-.fg{display:flex;flex-direction:column;gap:4px}
-.fl{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--t3);text-transform:uppercase}
-.fs{background:var(--s2);border:1px solid var(--b2);color:var(--text);
-  border-radius:var(--rs);padding:6px 26px 6px 10px;font-family:'DM Sans',sans-serif;
-  font-size:12px;cursor:pointer;min-width:108px;appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%233d6080'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 8px center;transition:.15s}
-.fs:focus{outline:none;border-color:var(--accent)}
-/* Store display (read-only) next to StoreCode */
-.store-display{padding:6px 10px;border-radius:var(--rs);background:var(--s2);border:1px solid var(--b1);
-  font-size:12px;color:var(--t2);min-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rbtn{padding:6px 12px;border-radius:var(--rs);background:none;
-  border:1px solid var(--b2);color:var(--t3);font-size:11px;cursor:pointer;
-  font-family:'DM Sans',sans-serif;transition:.15s;align-self:flex-end}
-.rbtn:hover{border-color:var(--red);color:var(--red)}
-
-/* ── KPI ── */
-.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin-bottom:14px}
-.kpi{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);
-  padding:14px;position:relative;overflow:hidden;transition:.2s}
-.kpi:hover{border-color:var(--b2);transform:translateY(-1px)}
-.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.kpi.cr::after{background:var(--red)}.kpi.co::after{background:var(--orange)}
-.kpi.cy::after{background:var(--yellow)}.kpi.cg::after{background:var(--green)}
-.kpi.cb::after{background:var(--a2)}.kpi.ct::after{background:var(--accent)}
-.kpi.cp::after{background:#a855f7}
-.kico{position:absolute;top:12px;right:12px;font-size:17px;opacity:.12}
-.klbl{font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.5px;margin-bottom:7px;line-height:1.3}
-.kval{font-size:28px;font-weight:700;font-family:'DM Mono',monospace;line-height:1}
-.kpi.cr .kval{color:var(--red)}.kpi.co .kval{color:var(--orange)}
-.kpi.cy .kval{color:var(--yellow)}.kpi.cg .kval{color:var(--green)}
-.kpi.cb .kval{color:var(--a2)}.kpi.ct .kval{color:var(--accent)}
-.kpi.cp .kval{color:#a855f7}
-.ksub{font-size:10px;color:var(--t3);margin-top:4px}
-
-/* ── PANELS ── */
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
-.panel{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;margin-bottom:12px}
-.ph{padding:11px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.pt{font-size:13px;font-weight:600}
-.pbadge{background:var(--s2);border:1px solid var(--b2);border-radius:20px;
-  padding:2px 9px;font-size:10px;color:var(--t2);font-family:'DM Mono',monospace}
-.pb{padding:14px}
-
-/* ── BAR CHART ── */
-.bc{display:flex;flex-direction:column;gap:7px}
-.brow{display:flex;align-items:center;gap:8px}
-.blbl{font-size:11px;color:var(--t2);width:92px;text-align:right;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
-.btrack{flex:1;background:var(--s2);border-radius:3px;height:15px;overflow:hidden}
-.bfill{height:100%;border-radius:3px;display:flex;align-items:center;
-  justify-content:flex-end;padding-right:5px;transition:width .7s cubic-bezier(.4,0,.2,1)}
-.bv{font-size:10px;font-family:'DM Mono',monospace;color:rgba(255,255,255,.9)}
-[data-theme="light"] .bv{color:rgba(0,0,0,.7)}
-.srow{display:flex;align-items:center;gap:8px;margin-bottom:6px}
-.strack{flex:1;height:17px;display:flex;border-radius:3px;overflow:hidden}
-.sseg{height:100%;transition:width .7s cubic-bezier(.4,0,.2,1)}
-.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-.li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
-.ld{width:9px;height:9px;border-radius:2px;flex-shrink:0}
-
-/* ── TABLE ── */
-.tw{overflow-x:auto}
-.st{max-height:360px;overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:11.5px}
-thead th{background:var(--s2);color:var(--t2);font-size:10px;font-weight:600;
-  letter-spacing:.8px;text-transform:uppercase;padding:9px 11px;text-align:left;
-  position:sticky;top:0;border-bottom:1px solid var(--b2);white-space:nowrap;z-index:1}
-tbody tr{border-bottom:1px solid var(--b1);transition:background .12s;cursor:pointer}
-tbody tr:hover{background:var(--s2)}
-tbody td{padding:8px 11px;color:var(--t2);vertical-align:middle}
-td.bold{color:var(--text);font-weight:500}
-.mono{font-family:'DM Mono',monospace}
-
-/* ── BADGES ── */
-.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
-.badge.crit{background:rgba(255,68,85,.12);color:var(--red);border:1px solid rgba(255,68,85,.3)}
-.badge.high{background:rgba(255,140,66,.12);color:var(--orange);border:1px solid rgba(255,140,66,.3)}
-.badge.med{background:rgba(251,191,36,.12);color:var(--yellow);border:1px solid rgba(251,191,36,.3)}
-.badge.low{background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)}
-.badge.pend{background:rgba(255,140,66,.1);color:var(--orange);border:1px solid rgba(255,140,66,.25)}
-.badge.comp{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25)}
-.badge.na{background:var(--s2);color:var(--t3);border:1px solid var(--b1)}
-.alink{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--rs);
-  background:rgba(0,212,170,.08);border:1px solid rgba(0,212,170,.25);color:var(--accent);
-  font-size:10px;font-weight:500;text-decoration:none;transition:.15s}
-.alink:hover{background:rgba(0,212,170,.18)}
-
-/* ── INSPECTOR TABS ── */
-.itabs{display:flex;border-bottom:1px solid var(--b1)}
-.itab{padding:9px 18px;background:none;border:none;border-bottom:2px solid transparent;
-  color:var(--t2);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;
-  cursor:pointer;margin-bottom:-1px;transition:.15s}
-.itab:hover{color:var(--text)}
-.itab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.ipane{display:none;padding:14px}
-.ipane.active{display:block}
-.rinfo{font-size:11px;color:var(--t3);margin-bottom:10px;font-family:'DM Mono',monospace;line-height:1.7;word-break:break-all}
-.rinfo strong{color:var(--accent)}
-
-/* ── MEASURES ── */
-.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-.mi{background:var(--s2);border:1px solid var(--b1);border-radius:var(--rs);padding:10px 14px}
-.mn{font-size:10px;font-weight:600;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:4px}
-.ml{font-size:11px;color:var(--t2);line-height:1.5}
-.mv{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:var(--text);margin-top:5px}
-.ctag{padding:3px 9px;border-radius:20px;font-family:'DM Mono',monospace;font-size:10px;border:1px solid;white-space:nowrap;display:inline-block;margin:3px}
-.ctag.ok{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);color:var(--green)}
-.ctag.ex{background:rgba(0,153,255,.08);border-color:rgba(0,153,255,.3);color:var(--a2)}
-.ctag.ms{background:rgba(255,68,85,.08);border-color:rgba(255,68,85,.3);color:var(--red)}
-
-/* ── DONUT ── */
-.dwrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
-.dleg{display:flex;flex-direction:column;gap:7px;flex:1;min-width:150px}
-.dli{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}
-.dlbl{display:flex;align-items:center;gap:6px;color:var(--t2);overflow:hidden}
-.dlbl span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
-.dval{font-family:'DM Mono',monospace;color:var(--text);font-size:11px;flex-shrink:0}
-
-/* ── ARTICLE POPUP ── */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;
-  align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
-.overlay.open{display:flex}
-.popup{background:var(--s1);border:1px solid var(--b2);border-radius:14px;
-  width:100%;max-width:620px;max-height:92vh;overflow-y:auto;
-  box-shadow:0 24px 80px rgba(0,0,0,.6);animation:popIn .2s ease}
-@keyframes popIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-.popup-head{padding:16px 20px 12px;border-bottom:1px solid var(--b1);
-  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
-  position:sticky;top:0;background:var(--s1);z-index:1}
-.popup-title{font-size:15px;font-weight:700}
-.popup-sub{font-size:11px;color:var(--t3);margin-top:3px}
-.popup-close{background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;
-  padding:2px 6px;border-radius:6px;transition:.15s;line-height:1;flex-shrink:0}
-.popup-close:hover{background:var(--s2);color:var(--text)}
-.popup-body{padding:16px 20px}
-.psect{margin-bottom:16px}
-.psect-title{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
-  color:var(--t3);margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
-.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:0}
-.pf{padding:8px 0;border-bottom:1px solid var(--b1)}
-.pf:nth-child(odd){padding-right:14px;border-right:1px solid var(--b1)}
-.pf:nth-child(even){padding-left:14px}
-.pf:last-child,.pf:nth-last-child(2):nth-child(odd){border-bottom:none}
-.pkey{font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
-.pval{font-size:13px;color:var(--text);font-weight:500;word-break:break-word}
-.pval.mono{font-family:'DM Mono',monospace;font-size:12px}
-.pval.big{font-size:26px;font-family:'DM Mono',monospace;font-weight:700}
-.popup-foot{padding:12px 20px;border-top:1px solid var(--b1);display:flex;gap:8px;flex-wrap:wrap}
-.sov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:250}
-
-/* ── RESPONSIVE ── */
-@media(max-width:900px){
-  :root{--sb:0px}
-  .sidebar{left:-212px}
-  .sidebar.open{left:0}
-  .sov.open{display:block}
-  .main{margin-left:0}
-  .menu-toggle{display:block}
-  .row2{grid-template-columns:1fr}
-  .kgrid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
-  .pgrid{grid-template-columns:1fr}
-  .pf:nth-child(odd){border-right:none;padding-right:0}
-  .pf:nth-child(even){padding-left:0}
+/* ════════════════════ LAYOUT ════════════════════ */
+.layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
 }
-@media(max-width:520px){
-  .content{padding:12px}
-  .fbar{padding:10px 12px}
-  .kgrid{grid-template-columns:1fr 1fr}
-  .kval{font-size:24px}
+
+/* ════════════════════ SIDEBAR ════════════════════ */
+.sidebar {
+  width: 196px;
+  min-width: 196px;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  flex-shrink: 0;
+}
+.brand {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.brand-logo {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
+}
+.brand-mark {
+  width: 28px; height: 28px; background: var(--green);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.brand-name { font-size: 13px; font-weight: 700; color: #fff; }
+.brand-sub { font-size: 9.5px; color: rgba(255,255,255,.35); letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px; }
+
+.nav { padding: 8px 0; flex: 1; }
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 18px; cursor: pointer;
+  background: none; border: none; border-left: 2px solid transparent;
+  width: 100%; text-align: left; font-family: var(--sans);
+  font-size: 12px; font-weight: 500; color: rgba(255,255,255,.45);
+  transition: all .15s; white-space: nowrap;
+}
+.nav-item:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.05); }
+.nav-item.active { color: #fff; background: rgba(255,255,255,.08); border-left-color: var(--green); }
+.nav-ico { font-size: 12px; width: 14px; text-align: center; flex-shrink: 0; opacity: .8; }
+.nav-sep { height: 1px; background: rgba(255,255,255,.07); margin: 6px 18px; }
+
+.sidebar-foot {
+  padding: 12px 18px; border-top: 1px solid rgba(255,255,255,.07);
+  font-size: 9.5px; color: rgba(255,255,255,.3); font-family: var(--mono);
+}
+.sidebar-foot strong { color: rgba(255,255,255,.55); display: block; margin-top: 2px; font-size: 10px; }
+
+/* ════════════════════ MAIN ════════════════════ */
+.main {
+  flex: 1;
+  width: calc(100vw - 196px);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 11px 22px; display: flex; align-items: center; gap: 12px;
+}
+.topbar-title { font-size: 14px; font-weight: 700; flex: 1; }
+.topbar-sub { font-size: 10px; color: var(--t3); margin-top: 1px; }
+
+/* search bar */
+.search-wrap {
+  position: relative; display: flex; align-items: center;
+}
+.search-wrap input {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 6px 10px 6px 28px;
+  font-family: var(--sans); font-size: 12px; color: var(--text);
+  width: 180px; outline: none; transition: border-color .15s;
+}
+.search-wrap input:focus { border-color: var(--green); }
+.search-wrap input::placeholder { color: var(--t3); }
+.search-ico { position: absolute; left: 9px; font-size: 11px; color: var(--t3); pointer-events: none; }
+
+/* ════════════════════ BUTTONS ════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 12px; border-radius: var(--rs);
+  border: 1px solid var(--border2); background: var(--surface);
+  color: var(--t2); font-family: var(--sans); font-size: 12px;
+  font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn:hover { border-color: var(--green); color: var(--green); }
+.btn-solid { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn-solid:hover { background: #333; border-color: #333; color: #fff; }
+.btn-green { background: var(--green); color: #fff; border-color: var(--green); }
+.btn-green:hover { background: #155a2c; border-color: #155a2c; color: #fff; }
+.btn-red { background: var(--red); color: #fff; border-color: var(--red); }
+.btn.loading .spin { animation: spin .7s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ════════════════════ STATUS BAR ════════════════════ */
+.status-bar { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 22px 0; }
+.status-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: var(--rs);
+  background: var(--surface); border: 1px solid var(--border);
+  font-size: 11px; flex: 1; min-width: 180px;
+}
+.sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sdot.ok { background: var(--green); }
+.sdot.err { background: var(--red); }
+.sdot.loading { background: var(--yellow); animation: blink .8s ease infinite; }
+@keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+
+/* ════════════════════ CONTENT ════════════════════ */
+.content {
+  width: 100%;
+  max-width: 100%;
+  padding: 14px 22px;
+  flex: 1;
+}
+.page { display: none; }
+.page.active { display: block; animation: fadeUp .2s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+
+/* ════════════════════ OVERDUE BANNER ════════════════════ */
+.overdue-banner {
+  display: none; align-items: flex-start; gap: 10px;
+  background: var(--red-l); border: 1px solid #f0c8c8;
+  border-left: 3px solid var(--red);
+  border-radius: var(--rs); padding: 10px 14px;
+  margin-bottom: 12px; font-size: 12px; color: var(--red);
+}
+.overdue-banner strong { font-weight: 700; }
+.overdue-banner a { color: var(--red); font-weight: 600; text-decoration: underline; cursor: pointer; }
+
+/* ════════════════════ KPI ════════════════════ */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.kpi {
+  background: var(--surface); border: 1px solid var(--border);
+  border-top: 2px solid transparent;
+  border-radius: var(--rs); padding: 12px 13px; position: relative;
+}
+.kpi-label { font-size: 9.5px; font-weight: 600; color: var(--t3); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; line-height: 1.4; }
+.kpi-value { font-family: var(--mono); font-size: 24px; font-weight: 600; line-height: 1; }
+.kpi-sub { font-size: 9.5px; color: var(--t3); margin-top: 3px; }
+.kpi.red  { border-top-color: var(--red); }   .kpi.red  .kpi-value { color: var(--red); }
+.kpi.ora  { border-top-color: var(--orange); } .kpi.ora  .kpi-value { color: var(--orange); }
+.kpi.yel  { border-top-color: var(--yellow); } .kpi.yel  .kpi-value { color: var(--yellow); }
+.kpi.grn  { border-top-color: var(--green); }  .kpi.grn  .kpi-value { color: var(--green); }
+.kpi.blu  { border-top-color: var(--blue); }   .kpi.blu  .kpi-value { color: var(--blue); }
+.kpi.neu  { border-top-color: var(--t3); }
+
+/* ════════════════════ PANELS ════════════════════ */
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rs); overflow: hidden; margin-bottom: 10px; }
+.panel-head { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.panel-title { font-size: 12px; font-weight: 600; }
+.panel-title-sub { font-size: 10px; color: var(--t3); margin-top: 1px; }
+.panel-badge { font-family: var(--mono); font-size: 9.5px; color: var(--t2); background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; }
+.panel-body { padding: 12px 14px; }
+
+/* ════════════════════ FILTER BAR ════════════════════ */
+.filter-bar {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--rs); padding: 10px 14px; margin-bottom: 10px;
+}
+.fg { display: flex; flex-direction: column; gap: 3px; }
+.fl { font-size: 9.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); }
+.fs {
+  background: var(--bg); border: 1px solid var(--border2); color: var(--text);
+  border-radius: var(--rs); padding: 5px 24px 5px 8px;
+  font-family: var(--sans); font-size: 12px; cursor: pointer; min-width: 100px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23b5af9e'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 7px center; transition: border-color .15s;
+}
+.fs:focus { outline: none; border-color: var(--green); }
+.store-disp { padding: 5px 9px; border-radius: var(--rs); background: var(--bg); border: 1px solid var(--border); font-size: 12px; color: var(--t2); min-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rbtn { padding: 5px 10px; border-radius: var(--rs); background: none; border: 1px solid var(--border2); color: var(--t3); font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; align-self: flex-end; }
+.rbtn:hover { border-color: var(--red); color: var(--red); }
+
+/* ════════════════════ BAR CHART ════════════════════ */
+.bar-chart { display: flex; flex-direction: column; gap: 5px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-lbl { font-size: 10.5px; color: var(--t2); width: 80px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+.bar-track { flex: 1; background: var(--bg); border-radius: 3px; height: 13px; overflow: hidden; border: 1px solid var(--border); }
+.bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; justify-content: flex-end; padding-right: 5px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+.bar-val { font-size: 9.5px; font-family: var(--mono); color: #fff; }
+
+/* ════════════════════ TABLE ════════════════════ */
+.tw { overflow-x: auto; }
+.ts { max-height: 400px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+thead th {
+  background: var(--surface2); color: var(--t2);
+  font-size: 9.5px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
+  padding: 8px 10px; text-align: left; position: sticky; top: 0;
+  border-bottom: 1px solid var(--border2); white-space: nowrap; z-index: 1;
+}
+/* checkbox column */
+thead th:first-child, tbody td:first-child { width: 36px; text-align: center; }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+tbody tr:hover { background: var(--surface2); }
+tbody tr.selected { background: #eef4ff; }
+tbody tr.overdue td { background: #fff8f8 !important; }
+tbody tr.overdue:hover td { background: #fff0f0 !important; }
+tbody td { padding: 7px 10px; color: var(--t2); vertical-align: middle; }
+td.b { color: var(--text); font-weight: 500; }
+.mono { font-family: var(--mono); }
+
+/* days bar inline */
+.days-bar { display: flex; align-items: center; gap: 5px; }
+.days-bar-track { width: 40px; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; flex-shrink: 0; }
+.days-bar-fill { height: 100%; border-radius: 99px; }
+
+/* ════════════════════ BADGES ════════════════════ */
+.badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 9.5px; font-weight: 600; white-space: nowrap; border: 1px solid; }
+.badge.crit   { background: var(--red-l);    color: var(--red);    border-color: #f0c8c8; }
+.badge.high   { background: var(--orange-l); color: var(--orange); border-color: #f0d8b8; }
+.badge.med    { background: var(--yellow-l); color: var(--yellow); border-color: #f0e8b0; }
+.badge.low    { background: var(--green-l);  color: var(--green);  border-color: #b8dfc5; }
+.badge.pend   { background: var(--orange-l); color: var(--orange); border-color: #f0d8b8; }
+.badge.done   { background: var(--green-l);  color: var(--green);  border-color: #b8dfc5; }
+.badge.na     { background: var(--bg);       color: var(--t3);     border-color: var(--border); }
+.overdue-tag  { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 20px; font-size: 9px; font-weight: 700; background: var(--red-l); color: var(--red); border: 1px solid #f0c8c8; }
+
+/* ════════════════════ WEEK COMPARE ════════════════════ */
+.wk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
+.wk-cell { padding: 10px 8px; border-radius: var(--rs); background: var(--bg); border: 1px solid var(--border); text-align: center; }
+.wk-cell-lbl { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
+.wk-cell-val { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); line-height: 1; }
+.wk-cell-trend { font-size: 9px; color: var(--t3); margin-top: 3px; }
+.wk-cell.up { border-color: #f0c8c8; background: var(--red-l); } .wk-cell.up .wk-cell-val { color: var(--red); }
+.wk-cell.dn { border-color: #b8dfc5; background: var(--green-l); } .wk-cell.dn .wk-cell-val { color: var(--green); }
+
+/* ════════════════════ SUBMISSION GRID ════════════════════ */
+.sub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 7px; }
+.sub-card { padding: 10px 11px; border-radius: var(--rs); background: var(--bg); border: 1px solid var(--border); }
+.sub-card.ok { background: var(--green-l); border-color: #b8dfc5; }
+.sub-card.miss { background: var(--red-l); border-color: #f0c8c8; }
+.sub-code { font-family: var(--mono); font-size: 10.5px; font-weight: 600; color: var(--text); }
+.sub-name { font-size: 10px; color: var(--t2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub-status { font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; margin-top: 5px; }
+.sub-card.ok .sub-status { color: var(--green); }
+.sub-card.miss .sub-status { color: var(--red); }
+.sub-items { font-family: var(--mono); font-size: 10px; color: var(--t2); margin-top: 1px; }
+
+/* ════════════════════ BULK ACTION TOOLBAR ════════════════════ */
+.action-toolbar {
+  display: none; position: fixed; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink); border-radius: 12px;
+  padding: 10px 16px; box-shadow: 0 8px 40px rgba(0,0,0,.35);
+  align-items: center; gap: 12px; z-index: 200;
+  animation: slideUp .25s cubic-bezier(.22,1,.36,1);
+  white-space: nowrap;
+}
+.action-toolbar.visible { display: flex; }
+@keyframes slideUp { from{transform:translateX(-50%) translateY(20px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+.action-toolbar-count { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); font-family: var(--mono); }
+.action-toolbar-count strong { color: #fff; }
+.action-toolbar-sep { width: 1px; height: 20px; background: rgba(255,255,255,.15); }
+.act-btn { padding: 7px 13px; border-radius: 7px; border: none; cursor: pointer; font-family: var(--sans); font-size: 12px; font-weight: 600; transition: all .15s; }
+.act-btn.rtc { background: var(--red); color: #fff; }
+.act-btn.rtc:hover { background: #a82424; }
+.act-btn.trans { background: var(--blue); color: #fff; }
+.act-btn.trans:hover { background: #163d8a; }
+.act-btn.mon { background: rgba(255,255,255,.12); color: rgba(255,255,255,.85); }
+.act-btn.mon:hover { background: rgba(255,255,255,.22); }
+.act-btn.cancel { background: none; color: rgba(255,255,255,.4); font-size: 16px; line-height: 1; padding: 4px 6px; }
+.act-btn.cancel:hover { color: #fff; }
+
+/* ════════════════════ POPUP ════════════════════ */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 500; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
+.overlay.open { display: flex; }
+.popup { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15); animation: popIn .2s ease; }
+@keyframes popIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
+.popup-head { padding: 15px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.popup-title { font-size: 14px; font-weight: 700; }
+.popup-sub { font-size: 10.5px; color: var(--t3); margin-top: 3px; }
+.popup-close { background: none; border: none; color: var(--t2); font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: .15s; line-height: 1; flex-shrink: 0; }
+.popup-close:hover { background: var(--bg); color: var(--text); }
+.popup-body { padding: 16px 20px; }
+.popup-sect { margin-bottom: 14px; }
+.popup-sect-title { font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--t3); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.pf { padding: 7px 0; border-bottom: 1px solid var(--border); }
+.pf:nth-child(odd) { padding-right: 14px; border-right: 1px solid var(--border); }
+.pf:nth-child(even) { padding-left: 14px; }
+.pf:last-child, .pf:nth-last-child(2):nth-child(odd) { border-bottom: none; }
+.pkey { font-size: 9.5px; color: var(--t3); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 3px; }
+.pval { font-size: 13px; color: var(--text); font-weight: 500; word-break: break-word; }
+.pval.mono { font-family: var(--mono); font-size: 12px; }
+.pval.big { font-size: 24px; font-family: var(--mono); font-weight: 700; }
+.popup-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ════════════════════ ACTION CONFIRM POPUP ════════════════════ */
+.action-confirm { background: var(--surface); border-radius: 14px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: popIn .2s ease; padding: 24px; }
+.action-confirm h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.action-confirm p { font-size: 12px; color: var(--t2); margin-bottom: 18px; line-height: 1.6; }
+.action-confirm-items { background: var(--bg); border-radius: var(--rs); padding: 10px 12px; margin-bottom: 16px; max-height: 160px; overflow-y: auto; }
+.action-confirm-item { font-size: 11px; font-family: var(--mono); color: var(--t2); padding: 2px 0; }
+.confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* ════════════════════ INSPECTOR ════════════════════ */
+.insp-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+
+/* ════════════════════ TOAST ════════════════════ */
+.toast {
+  position: fixed; bottom: 80px; left: 50%;
+  transform: translateX(-50%) translateY(30px);
+  background: var(--ink); color: #fff; font-family: var(--sans);
+  font-size: 12px; font-weight: 600; padding: 10px 18px;
+  border-radius: 50px; z-index: 99999; opacity: 0;
+  white-space: nowrap; pointer-events: none;
+  transition: all .25s cubic-bezier(.22,1,.36,1);
+  box-shadow: 0 4px 20px rgba(0,0,0,.25);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: var(--green); }
+.toast.error { background: var(--red); }
+
+
+.panel,
+.row2,
+.kpi-grid,
+.filter-bar,
+.tw,
+.page {
+  width: 100%;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  min-width: 1400px;
+}
+
+.tw {
+  overflow-x: auto;
+}
+
+@media(max-width: 860px){
+
+  .layout {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .row2 {
+    grid-template-columns: 1fr;
+  }
+
+  .popup-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pf:nth-child(odd) {
+    border-right: none;
+    padding-right: 0;
+  }
+
+  .pf:nth-child(even) {
+    padding-left: 0;
+  }
+
+  table {
+    min-width: 1000px;
+  }
 }
 </style>
 </head>
 <body>
 
-<div class="sov" id="sov" onclick="closeSB()"></div>
+<!-- LAYOUT -->
+<div class="layout">
 
-<nav class="sidebar" id="sidebar">
-  <div class="logo"><div class="logo-name">⬡ Gala</div><div class="logo-sub">Expiry Tracker</div></div>
+<!-- ══ SIDEBAR ══ -->
+<nav class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">
+      <div class="brand-mark">G</div>
+      <div class="brand-name">Gala Markets</div>
+    </div>
+    <div class="brand-sub">Expiry Dashboard</div>
+  </div>
   <div class="nav">
-    <button class="nb active" onclick="go('overview')"  id="n-overview"><span class="ni">📊</span><span>Buyer Overview</span></button>
-    <button class="nb"        onclick="go('summary')"   id="n-summary"><span class="ni">🏪</span><span>Store Summary</span></button>
-    <button class="nb"        onclick="go('detail')"    id="n-detail"><span class="ni">🔍</span><span>Store Detail</span></button>
-    <div class="nsep"></div>
-    <button class="nb"        onclick="go('inspector')" id="n-inspector"><span class="ni">🔬</span><span>Data Inspector</span></button>
-    <button class="nb"        onclick="go('measures')"  id="n-measures"><span class="ni">📐</span><span>Measures</span></button>
+    <button class="nav-item active" onclick="go('overview')" id="n-overview"><span class="nav-ico">◉</span>Overview</button>
+    <button class="nav-item" onclick="go('actions')" id="n-actions"><span class="nav-ico">⚡</span>Action Center</button>
+    <button class="nav-item" onclick="go('stores')" id="n-stores"><span class="nav-ico">▤</span>Store Summary</button>
+    <div class="nav-sep"></div>
+    <button class="nav-item" onclick="go('submission')" id="n-submission"><span class="nav-ico">◈</span>Submission Status</button>
+    <button class="nav-item" onclick="go('inspector')" id="n-inspector"><span class="nav-ico">⌥</span>Data Inspector</button>
   </div>
-  <div class="theme-row">
-    <span class="theme-icon" id="theme-icon">🌙</span>
-    <span class="theme-lbl" id="theme-lbl">Dark Mode</span>
-    <label class="toggle"><input type="checkbox" id="theme-chk" onchange="toggleTheme()"><span class="tslider"></span></label>
-  </div>
-  <div class="sfoot">Last refresh<span id="ts">—</span></div>
+  <div class="sidebar-foot">Last refresh<strong id="ts">—</strong></div>
 </nav>
 
+<!-- ══ MAIN ══ -->
 <div class="main">
   <div class="topbar">
-    <button class="menu-toggle" onclick="toggleSB()">☰</button>
     <div style="flex:1">
-      <div class="topbar-title" id="ptitle">Buyer Overview</div>
-      <div class="topbar-sub">Gala Supermarket · Expiry Management</div>
+      <div class="topbar-title" id="ptitle">Overview</div>
+      <div class="topbar-sub">Gala Supermarket · Expiry Management System</div>
     </div>
-    <button class="btn spin" onclick="loadAll()" id="rfbtn"><span class="bi">↻</span> Refresh</button>
+    <div class="search-wrap">
+      <span class="search-ico">⌕</span>
+      <input type="text" id="globalSearch" placeholder="Search article, desc…" oninput="onSearch()">
+    </div>
+    <button class="btn loading" onclick="loadAll()" id="rfbtn"><span class="spin">↻</span> Refresh</button>
   </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div class="status-chip"><div class="sdot loading" id="dot-e"></div><span id="inf-e" style="font-size:11px;color:var(--t2)">Loading ExpiryData…</span></div>
+    <div class="status-chip"><div class="sdot loading" id="dot-l"></div><span id="inf-l" style="font-size:11px;color:var(--t2)">Loading ActionLedger…</span></div>
+    <div class="status-chip"><div class="sdot loading" id="dot-s"></div><span id="inf-s" style="font-size:11px;color:var(--t2)">Loading Stores…</span></div>
+  </div>
+
   <div class="content">
 
-    <!-- STATUS -->
-    <div class="sbar">
-      <div class="sc"><div class="sdot loading" id="dot-e"></div><div class="si"><strong>ExpiryData_WebRaw</strong>&nbsp;<span id="inf-e">Loading…</span></div></div>
-      <div class="sc"><div class="sdot loading" id="dot-l"></div><div class="si"><strong>BuyerActionLedgers</strong>&nbsp;<span id="inf-l">Loading…</span></div></div>
-    </div>
-
-    <!-- ── OVERVIEW ── -->
+    <!-- ══ OVERVIEW ══ -->
     <div class="page active" id="page-overview">
-      <div class="kgrid" id="kpi-ov"></div>
+      <div class="overdue-banner" id="overdue-banner">
+        <span style="font-size:15px;flex-shrink:0">⚠</span>
+        <div><strong id="overdue-count">0</strong> items submitted 2+ weeks ago are still Pending Action — <a onclick="go('actions');filterOverdue()">View overdue items →</a></div>
+      </div>
+      <div class="kpi-grid" id="kpi-ov"></div>
       <div class="row2">
-        <div class="panel"><div class="ph"><span class="pt">Total Stock by StoreCode</span><span class="pbadge" id="b-stores">—</span></div><div class="pb"><div class="bc" id="ch-tot"></div></div></div>
-        <div class="panel"><div class="ph"><span class="pt">Critical ≤7 Days by Store</span></div><div class="pb"><div class="bc" id="ch-crit"></div></div></div>
+        <div class="panel"><div class="panel-head"><span class="panel-title">Critical ≤7 Days by Store</span><span class="panel-badge" id="b-crit">—</span></div><div class="panel-body"><div class="bar-chart" id="ch-crit"></div></div></div>
+        <div class="panel"><div class="panel-head"><span class="panel-title">Total Stock by Store</span></div><div class="panel-body"><div class="bar-chart" id="ch-tot"></div></div></div>
       </div>
       <div class="panel">
-        <div class="ph"><span class="pt">Store Expiry Summary</span><span class="pbadge" id="b-ov">—</span></div>
-        <div class="tw st"><table id="t-ov"><thead><tr><th>StoreCode</th><th>Store</th><th>≤7 Days</th><th>≤30 Days</th><th>≤60 Days</th><th>≤90 Days</th><th>Total Stock</th><th>Pending</th><th>Action Taken</th></tr></thead><tbody></tbody></table></div>
+        <div class="panel-head"><span class="panel-title">Store Expiry Summary</span><span class="panel-badge" id="b-ov">—</span></div>
+        <div class="tw ts"><table id="t-ov">
+          <thead><tr><th>Code</th><th>Store</th><th>≤7 Days</th><th>≤30 Days</th><th>≤60 Days</th><th>Total</th><th>Pending</th><th>Actioned</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
       </div>
     </div>
 
-    <!-- ── STORE SUMMARY ── -->
-    <div class="page" id="page-summary">
-      <div class="fbar">
-        <div class="fg">
-          <div class="fl">Store Code</div>
-          <select class="fs" id="ss-code" onchange="onCodeChange('ss')"><option value="">All Codes</option></select>
-        </div>
-        <div class="fg">
-          <div class="fl">Store Name</div>
-          <div class="store-display" id="ss-store-disp">—</div>
-        </div>
-        <div class="fg"><div class="fl">Submission Month</div><select class="fs" id="ss-ym" onchange="renderSummary()"><option value="">All Months</option></select></div>
-        <div class="fg"><div class="fl">Year</div><select class="fs" id="ss-year" onchange="renderSummary()"><option value="">All Years</option></select></div>
-        <div class="fg"><div class="fl">Week</div><select class="fs" id="ss-week" onchange="renderSummary()"><option value="">All Weeks</option></select></div>
-        <button class="rbtn" onclick="resetF('ss')">✕ Reset</button>
-        <button class="btn" onclick="exportXL('summary')" style="align-self:flex-end">⬇ Excel</button>
+    <!-- ══ ACTION CENTER ══ -->
+    <div class="page" id="page-actions">
+      <div class="overdue-banner" id="overdue-banner2" style="margin-bottom:10px">
+        <span style="font-size:15px;flex-shrink:0">⚠</span>
+        <div><strong id="overdue-count2">0</strong> overdue items shown with red highlight.</div>
       </div>
-      <div class="kgrid" id="kpi-sum"></div>
-      <div class="row2">
-        <div class="panel"><div class="ph"><span class="pt">Pending vs Action Taken by Store</span></div><div class="pb"><div class="bc" id="ch-act"></div></div></div>
-        <div class="panel"><div class="ph"><span class="pt">RTC Stock by Bucket per Store</span></div>
-          <div class="pb"><div class="bc" id="ch-rtc"></div>
-            <div class="legend">
-              <div class="li"><div class="ld" style="background:var(--red)"></div>&lt;7 Days</div>
-              <div class="li"><div class="ld" style="background:var(--orange)"></div>7–30 Days</div>
-              <div class="li"><div class="ld" style="background:var(--yellow)"></div>31–60 Days</div>
-              <div class="li"><div class="ld" style="background:var(--green)"></div>61–90 Days</div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="ph"><span class="pt">Week-by-Week Breakdown</span><span class="pbadge" id="b-sum">—</span></div>
-        <div class="tw st"><table id="t-sum"><thead><tr><th>Sub. Month</th><th>Year</th><th>Week</th><th>RTC &lt;7</th><th>RTC 7–30</th><th>RTC 31–60</th><th>RTC 61–90</th><th>Total RTC</th><th>Pending</th><th>Action Taken</th></tr></thead><tbody></tbody></table></div>
-      </div>
-
-      <div class="panel" style="margin-top:12px">
-        <div class="ph">
-          <div><span class="pt">Article Stock by Week</span><div style="font-size:11px;color:var(--t3);margin-top:2px">Stock count per article per submission week</div></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <span class="pbadge" id="b-artweek">—</span>
-            <button class="btn" onclick="exportXL('artweek')">⬇ Excel</button>
-          </div>
-        </div>
-        <div class="tw st"><table id="t-artweek"><thead><tr id="t-artweek-hdr"></tr></thead><tbody></tbody></table></div>
-      </div>
-    </div>
-
-    <!-- ── STORE DETAIL ── -->
-    <div class="page" id="page-detail">
-      <div class="fbar">
-        <div class="fg">
-          <div class="fl">Store Code</div>
-          <select class="fs" id="ds-code" onchange="onCodeChange('ds')"><option value="">All Codes</option></select>
-        </div>
-        <div class="fg">
-          <div class="fl">Store Name</div>
-          <div class="store-display" id="ds-store-disp">—</div>
-        </div>
-        <div class="fg"><div class="fl">Sub. Month</div><select class="fs" id="ds-ym" onchange="renderDetail()"><option value="">All Months</option></select></div>
-        <div class="fg"><div class="fl">Week</div><select class="fs" id="ds-week" onchange="renderDetail()"><option value="">All Weeks</option></select></div>
-        <div class="fg"><div class="fl">Action Status</div>
-          <select class="fs" id="ds-status" onchange="renderDetail()">
+      <div class="filter-bar">
+        <div class="fg"><div class="fl">Store Code</div><select class="fs" id="ac-code" onchange="onCodeChange('ac')"><option value="">All</option></select></div>
+        <div class="fg"><div class="fl">Store</div><div class="store-disp" id="ac-store-disp">—</div></div>
+        <div class="fg"><div class="fl">Month</div><select class="fs" id="ac-ym" onchange="renderActions()"><option value="">All</option></select></div>
+        <div class="fg"><div class="fl">Week</div><select class="fs" id="ac-week" onchange="renderActions()"><option value="">All</option></select></div>
+        <div class="fg"><div class="fl">Status</div>
+          <select class="fs" id="ac-status" onchange="renderActions()">
             <option value="">All</option>
-            <option value="Pending Action">Pending Action</option>
-            <option value="Action Taken">Action Taken</option>
+            <option value="Pending Action">Pending</option>
+            <option value="Action Taken">Actioned</option>
           </select>
         </div>
-        <div class="fg"><div class="fl">Risk Bucket</div><select class="fs" id="ds-bucket" onchange="renderDetail()"><option value="">All Buckets</option></select></div>
-        <div class="fg"><div class="fl">Required Action</div><select class="fs" id="ds-action" onchange="renderDetail()"><option value="">All</option></select></div>
-        <button class="rbtn" onclick="resetF('ds')">✕ Reset</button>
-        <button class="btn" onclick="exportXL('detail')" style="align-self:flex-end">⬇ Excel</button>
+        <div class="fg"><div class="fl">Risk</div><select class="fs" id="ac-bucket" onchange="renderActions()"><option value="">All</option></select></div>
+        <button class="rbtn" onclick="resetF('ac')">✕ Reset</button>
+        <button class="btn" onclick="exportXL('actions')" style="align-self:flex-end">⬇ Excel</button>
       </div>
-      <div class="kgrid" id="kpi-det"></div>
-      <div class="row2">
-        <div class="panel"><div class="ph"><span class="pt">Pending Stock by Article (Top 8)</span></div><div class="pb"><div id="donut"></div></div></div>
-        <div class="panel"><div class="ph"><span class="pt">Items by Risk Bucket</span></div><div class="pb"><div class="bc" id="ch-bkt"></div></div></div>
-      </div>
+      <div class="kpi-grid" id="kpi-ac"></div>
       <div class="panel">
-        <div class="ph">
-          <div><span class="pt">Item Detail</span><div style="font-size:11px;color:var(--t3);margin-top:2px">Click any row → full article card</div></div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <span class="pbadge" id="b-det">—</span>
-            <button class="btn" onclick="exportXL('detail')">⬇ Excel</button>
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Item Action Table</div>
+            <div class="panel-title-sub">☑ Select rows → bulk action toolbar appears · Click row for full details</div>
+          </div>
+          <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
+            <span class="panel-badge" id="b-ac">—</span>
+            <button class="btn" onclick="selectAllVisible()">Select All</button>
+            <button class="btn" onclick="clearSelection()">Clear</button>
           </div>
         </div>
-        <div class="tw st"><table id="t-det"><thead><tr>
-          <th>Store</th><th>Code</th><th>Week</th><th>Sub. Month</th>
-          <th>Barcode</th><th>Article</th><th>Description</th><th>Department</th><th>Stock</th>
-          <th>Expiry Date</th><th>Days Left</th><th>Risk Bucket</th>
-          <th>Required Action</th><th>Status</th><th>Action Taken</th><th>Comments</th><th>🔗</th>
-        </tr></thead><tbody></tbody></table></div>
+        <div class="tw ts"><table id="t-ac">
+          <thead><tr>
+            <th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th>
+            <th>Code</th><th>Store</th><th>Week</th><th>Month</th>
+            <th>Article</th><th>Description</th><th>Dept</th><th>Stock</th>
+            <th>Expiry</th><th>Days Left</th><th>Risk</th><th>Required Action</th><th>Status</th><th>Action Taken</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table></div>
       </div>
     </div>
 
-    <!-- ── DATA INSPECTOR ── -->
+    <!-- ══ STORE SUMMARY ══ -->
+    <div class="page" id="page-stores">
+      <div class="filter-bar">
+        <div class="fg"><div class="fl">Store Code</div><select class="fs" id="ss-code" onchange="onCodeChange('ss')"><option value="">All</option></select></div>
+        <div class="fg"><div class="fl">Store</div><div class="store-disp" id="ss-store-disp">—</div></div>
+        <div class="fg"><div class="fl">Month</div><select class="fs" id="ss-ym" onchange="renderStores()"><option value="">All</option></select></div>
+        <div class="fg"><div class="fl">Week</div><select class="fs" id="ss-week" onchange="renderStores()"><option value="">All</option></select></div>
+        <button class="rbtn" onclick="resetF('ss')">✕ Reset</button>
+        <button class="btn" onclick="exportXL('stores')" style="align-self:flex-end">⬇ Excel</button>
+      </div>
+      <div class="kpi-grid" id="kpi-sum"></div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Week-over-Week Stock</span><span class="panel-badge" id="b-wk">—</span></div>
+        <div class="panel-body"><div class="wk-grid" id="wk-compare"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Article Stock by Week</div><div class="panel-title-sub">Stock per article per week — rising = getting worse</div></div>
+          <div style="display:flex;gap:7px;align-items:center"><span class="panel-badge" id="b-artweek">—</span><button class="btn" onclick="exportXL('artweek')">⬇ Excel</button></div>
+        </div>
+        <div class="tw ts"><table id="t-artweek"><thead><tr id="t-artweek-hdr"></tr></thead><tbody></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Week Breakdown</span><span class="panel-badge" id="b-sum">—</span></div>
+        <div class="tw ts"><table id="t-sum">
+          <thead><tr><th>Month</th><th>Week</th><th>&lt;7</th><th>7–30</th><th>31–60</th><th>61–90</th><th>Total</th><th>Pending</th><th>Actioned</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ══ SUBMISSION STATUS ══ -->
+    <div class="page" id="page-submission">
+      <div class="filter-bar">
+        <div class="fg"><div class="fl">Month</div><select class="fs" id="sub-ym" onchange="renderSubmission()"><option value="">All Months</option></select></div>
+        <div class="fg"><div class="fl">Week</div><select class="fs" id="sub-week" onchange="renderSubmission()"><option value="">All Weeks</option></select></div>
+      </div>
+      <div class="kpi-grid" id="kpi-sub"></div>
+      <div class="panel">
+        <div class="panel-head">
+          <div><div class="panel-title">Store Submission Status</div><div class="panel-title-sub">Based on Stores sheet · Green = submitted · Red = no submission found</div></div>
+          <span class="panel-badge" id="b-sub">—</span>
+        </div>
+        <div class="panel-body"><div class="sub-grid" id="sub-grid"></div></div>
+      </div>
+    </div>
+
+    <!-- ══ DATA INSPECTOR ══ -->
     <div class="page" id="page-inspector">
-      <div class="itabs">
-        <button class="itab active" onclick="inspTab('e',this)">ExpiryData_WebRaw</button>
-        <button class="itab" onclick="inspTab('l',this)">BuyerActionLedgers</button>
-        <button class="itab" onclick="inspTab('p',this)">Processed (Joined)</button>
+      <div class="insp-tabs">
+        <button class="btn btn-solid" id="insp-btn-e" onclick="switchInsp('e',this)">ExpiryData Raw</button>
+        <button class="btn" id="insp-btn-l" onclick="switchInsp('l',this)">ActionLedger Raw</button>
+        <button class="btn" id="insp-btn-p" onclick="switchInsp('p',this)">Processed</button>
+        <button class="btn" onclick="exportXL(inspExportType)" style="margin-left:auto">⬇ Export</button>
       </div>
-      <div class="ipane active" id="ip-e">
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:11px;color:var(--t3)">Raw CSV — first 300 rows shown</span>
-          <button class="btn" onclick="exportXL('raw-e')">⬇ Export</button>
-        </div>
-        <div class="rinfo" id="ri-e">—</div>
-        <div class="tw st"><table id="t-re"><thead></thead><tbody></tbody></table></div>
-      </div>
-      <div class="ipane" id="ip-l">
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:11px;color:var(--t3)">Raw CSV — first 300 rows shown</span>
-          <button class="btn" onclick="exportXL('raw-l')">⬇ Export</button>
-        </div>
-        <div class="rinfo" id="ri-l">—</div>
-        <div class="tw st"><table id="t-rl"><thead></thead><tbody></tbody></table></div>
-      </div>
-      <div class="ipane" id="ip-p">
-        <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:11px;color:var(--t3)">After JOIN + BI-matched processing</span>
-          <button class="btn" onclick="exportXL('proc')">⬇ Export</button>
-        </div>
-        <div class="rinfo" id="ri-p">—</div>
-        <div class="tw st"><table id="t-rp"><thead></thead><tbody></tbody></table></div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" id="insp-title">ExpiryData_WebRaw</span><span class="panel-badge" id="insp-badge">—</span></div>
+        <div class="tw ts"><table id="t-insp"><thead></thead><tbody></tbody></table></div>
       </div>
     </div>
 
-    <!-- ── MEASURES ── -->
-    <div class="page" id="page-measures">
-      <div class="panel"><div class="ph"><span class="pt">All 16 PBIX Measures — Live Values</span></div><div class="pb"><div class="mgrid" id="mgrid"></div></div></div>
-      <div class="panel" style="margin-top:12px"><div class="ph"><span class="pt">Column Map: PBIX vs Source</span></div><div class="pb" id="cmap"></div></div>
-    </div>
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /layout -->
 
-  </div>
+<!-- ══ BULK ACTION TOOLBAR ══ -->
+<div class="action-toolbar" id="action-toolbar">
+  <div class="action-toolbar-count"><strong id="sel-count">0</strong> rows selected</div>
+  <div class="action-toolbar-sep"></div>
+  <button class="act-btn rtc" onclick="confirmAction('RTC Price Change')">🔴 RTC Price Change</button>
+  <button class="act-btn trans" onclick="confirmAction('Store Transfer')">🔵 Store Transfer</button>
+  <button class="act-btn mon" onclick="confirmAction('Monitor')">⬤ Monitor</button>
+  <div class="action-toolbar-sep"></div>
+  <button class="act-btn cancel" onclick="clearSelection()">✕</button>
 </div>
 
-<!-- ARTICLE POPUP -->
+<!-- ══ ITEM POPUP ══ -->
 <div class="overlay" id="popup-overlay" onclick="closePop(event)">
   <div class="popup">
     <div class="popup-head">
@@ -467,69 +632,60 @@ td.bold{color:var(--text);font-weight:500}
   </div>
 </div>
 
+<!-- ══ ACTION CONFIRM POPUP ══ -->
+<div class="overlay" id="confirm-overlay">
+  <div class="action-confirm">
+    <h3 id="confirm-title">Confirm Action</h3>
+    <p id="confirm-desc">—</p>
+    <div class="action-confirm-items" id="confirm-items"></div>
+    <div class="confirm-btns">
+      <button class="btn" onclick="document.getElementById('confirm-overlay').classList.remove('open')">Cancel</button>
+      <button class="btn btn-green" id="confirm-ok-btn" onclick="executeAction()">✓ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-// ════════════════════════════════════════════════════════
-// CONFIG
-// ════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// CONFIG — update these URLs
+// ══════════════════════════════════════════════
 const EXPIRY_URL  = 'https://script.google.com/macros/s/AKfycbwqjOXHTw6U7UC8kcSgZj8YJLVpqww3buF2GsnjuQCEBFBXbDktFDpRHSgySoQNhHA6/exec';
 const LEDGER_URL  = 'https://script.google.com/macros/s/AKfycbxleZYXY-ZnrwDHvFINQx_Uei1k7qRM14_wFAbrIQ5virw0Y6mq6WxsbOUkCG17Nh0kuQ/exec';
-const ACTION_BASE = 'https://exptrackgala-png.github.io/expiry-action/';
-const PBIX_COLS   = ['Store','StoreCode','Article','Barcode','Description',
-  'Required Action','Action Status','Action Taken','Comments','Expiry Risk Bucket','Week','Submission Month'];
-const MN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+// ✅ Same ExpirySystem sheet — add a doGet action="stores" to return Stores sheet
+const STORES_URL  = 'https://script.google.com/macros/s/AKfycbwvJ9069dOAncBLWAWUuAsjqY-78_xkfuo4TUqLSi1JqxEtDb6PqeFXINypEuOM3unM9A/exec?action=stores';
+// ✅ Ledger POST URL — update to your ledger-writing Apps Script URL
+const LEDGER_POST = 'https://script.google.com/macros/s/AKfycbxleZYXY-ZnrwDHvFINQx_Uei1k7qRM14_wFAbrIQ5virw0Y6mq6WxsbOUkCG17Nh0kuQ/exec';
+
 const MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-// ════════════════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════════════════
-let rawE=[], rawL=[], proc=[], curPage='overview';
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+let rawE=[], rawL=[], proc=[], allStoreCodes=[], curPage='overview', inspMode='e', inspExportType='raw-e';
+let selectedIndices = new Set(), pendingAction = '';
+let codeToStore = {};
 
-// ════════════════════════════════════════════════════════
-// THEME
-// ════════════════════════════════════════════════════════
-function toggleTheme(){
-  const isDark = document.documentElement.getAttribute('data-theme')==='dark';
-  const next   = isDark ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  document.getElementById('theme-lbl').textContent  = next==='dark'?'Dark Mode':'Light Mode';
-  document.getElementById('theme-icon').textContent = next==='dark'?'🌙':'☀️';
-  localStorage.setItem('theme', next);
-}
-(function initTheme(){
-  const saved = localStorage.getItem('theme')||'dark';
-  document.documentElement.setAttribute('data-theme', saved);
-  if(saved==='light'){
-    document.getElementById('theme-chk').checked = true;
-    document.getElementById('theme-lbl').textContent = 'Light Mode';
-    document.getElementById('theme-icon').textContent = '☀️';
-  }
-})();
-
-// ════════════════════════════════════════════════════════
-// NAV
-// ════════════════════════════════════════════════════════
-const TITLES={overview:'Buyer Overview',summary:'Store Summary',detail:'Store Detail',inspector:'Data Inspector',measures:'Measures'};
-function go(name){
-  curPage=name;
+// ══ NAV ══
+const TITLES = {overview:'Overview',actions:'Action Center',stores:'Store Summary',submission:'Submission Status',inspector:'Data Inspector'};
+function go(n){
+  curPage=n;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
-  document.getElementById('n-'+name).classList.add('active');
-  document.getElementById('ptitle').textContent=TITLES[name];
-  closeSB();
-  if(proc.length) renderPage(name);
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  document.getElementById('n-'+n).classList.add('active');
+  document.getElementById('ptitle').textContent=TITLES[n];
+  if(proc.length) renderPage(n);
 }
-function renderPage(n){
-  ({overview:renderOverview, summary:renderSummary, detail:renderDetail,
-    inspector:renderInspector, measures:renderMeasures})[n]?.();
-}
-function toggleSB(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sov').classList.toggle('open');}
-function closeSB(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sov').classList.remove('open');}
+function renderPage(n){({overview:renderOverview,actions:renderActions,stores:renderStores,submission:renderSubmission,inspector:renderInspector})[n]?.();}
 
-// ════════════════════════════════════════════════════════
-// CSV FETCH
-// ════════════════════════════════════════════════════════
+// ══ TOAST ══
+function toast(msg, type='', ms=2600){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast '+(type||'');
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),ms);
+}
+
+// ══ CSV FETCH ══
 async function fetchCSV(url){
   const r=await fetch(url+(url.includes('?')?'&':'?')+'_t='+Date.now());
   if(!r.ok) throw new Error('HTTP '+r.status);
@@ -538,7 +694,7 @@ async function fetchCSV(url){
   if(lines.length<2) return [];
   const hdrs=csvRow(lines[0]);
   return lines.slice(1).map(l=>{
-    const v=csvRow(l);const o={};
+    const v=csvRow(l); const o={};
     hdrs.forEach((h,i)=>{o[h.trim()]=(v[i]||'').trim();});
     return o;
   }).filter(r=>Object.values(r).some(v=>v));
@@ -547,877 +703,569 @@ function csvRow(line){
   const r=[];let c='';let q=false;
   for(let i=0;i<line.length;i++){
     const ch=line[i];
-    if(ch==='"'&&!q){q=true;}
+    if(ch==='"'&&!q)q=true;
     else if(ch==='"'&&q){if(line[i+1]==='"'){c+='"';i++;}else q=false;}
     else if(ch===','&&!q){r.push(c);c='';}
     else c+=ch;
   }
-  r.push(c);return r;
+  r.push(c); return r;
 }
-
-// ════════════════════════════════════════════════════════
-// COLUMN VALUE HELPER — case + space insensitive
-// ════════════════════════════════════════════════════════
 function cv(row,...names){
   for(const n of names){
-    if(row[n]!==undefined&&row[n]!=='') return row[n];
+    if(row[n]!==undefined&&row[n]!=='')return row[n];
     const k=Object.keys(row).find(k2=>k2.toLowerCase().replace(/[\s_]/g,'')===n.toLowerCase().replace(/[\s_]/g,''));
-    if(k&&row[k]!==undefined&&row[k]!=='') return row[k];
+    if(k&&row[k]!==undefined&&row[k]!=='')return row[k];
   }
   return '';
 }
 
-// ════════════════════════════════════════════════════════
-// DATE PARSER — handles Google Sheets JS toString() format:
-//   "Wed Apr 29 2026 11:00:00 GMT+0400 (توقيت الخليج)"
-//   plus ISO, DD/MM/YYYY, Excel serial, M/D/YYYY etc.
-// ════════════════════════════════════════════════════════
-const MONTH_MAP={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+// ══ DATE PARSER ══
+const MMAP={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
 function parseDate(v){
-  if(!v) return null;
-  v=String(v).trim();
-  if(!v) return null;
-  // 1. Excel serial
+  if(!v)return null; v=String(v).trim(); if(!v)return null;
   const n=parseFloat(v);
-  if(!isNaN(n)&&n>40000&&n<60000){
-    const d=new Date(Date.UTC(1899,11,30)+n*86400000);
-    return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
-  }
-  // 2. Google Sheets/JS Date.toString(): "Wed Apr 29 2026 11:00:00 GMT+0400 (توقيت الخليج)"
-  //    Match: optional-weekday MonthName Day Year
+  if(!isNaN(n)&&n>40000&&n<60000){const d=new Date(Date.UTC(1899,11,30)+n*86400000);return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());}
   let m=v.match(/(?:[A-Za-z]{3,}\s+)?([A-Za-z]{3,})\s+(\d{1,2})\s+(\d{4})/);
-  if(m){const mo=MONTH_MAP[m[1].toLowerCase().slice(0,3)];if(mo!==undefined)return new Date(+m[3],mo,+m[2]);}
-  // 3. ISO YYYY-MM-DD
-  m=v.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
-  // 4. DD/MM/YYYY or DD-MM-YYYY
-  m=v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
-  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
-  // 5. M/D/YYYY
-  m=v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if(m) return new Date(+m[3],+m[1]-1,+m[2]);
-  // 6. Strip Arabic/RTL/tz noise and retry
-  const clean=v.replace(/[\u0600-\u06FF\u0750-\u077F\u200F\u200E\u202A-\u202E()]/g,'').replace(/GMT[+-]\d{4}/gi,'').replace(/\s+/g,' ').trim();
+  if(m){const mo=MMAP[m[1].toLowerCase().slice(0,3)];if(mo!==undefined)return new Date(+m[3],mo,+m[2]);}
+  m=v.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+  m=v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
+  const clean=v.replace(/[\u0600-\u06FF\u200F\u200E\u202A-\u202E()]/g,'').replace(/GMT[+-]\d{4}/gi,'').replace(/\s+/g,' ').trim();
   if(clean){const fd=new Date(clean);if(!isNaN(fd))return new Date(fd.getFullYear(),fd.getMonth(),fd.getDate());}
   return null;
 }
-
-// ════════════════════════════════════════════════════════
-// SUBMISSION MONTH PARSER (BI-MATCHED)
-// ════════════════════════════════════════════════════════
 function parseSM(v){
-  if(!v||!v.trim()) return {ym:'',year:null,monthNum:null,monthName:'',monthShort:'',disp:''};
-  v=v.trim();
-  let m;
-  // YYYY-MM or YYYY-M
+  if(!v||!v.trim())return{ym:'',year:null,monthNum:null,disp:''};
+  v=v.trim(); let m;
   m=v.match(/^(\d{4})-(\d{1,2})$/);
-  if(m){const y=+m[1],mn=+m[2],i=mn-1;return{ym:`${y}-${String(mn).padStart(2,'0')}`,year:y,monthNum:mn,monthName:MN[i],monthShort:MS[i],disp:MS[i]+' '+y};}
-  // Apr 2026 / April 2026
+  if(m){const y=+m[1],mn=+m[2],i=mn-1;return{ym:`${y}-${String(mn).padStart(2,'0')}`,year:y,monthNum:mn,monthShort:MS[i],disp:MS[i]+' '+y};}
   m=v.match(/^([A-Za-z]+)\s+(\d{4})$/);
-  if(m){const idx=MS.findIndex(x=>x.toLowerCase()===m[1].slice(0,3).toLowerCase());if(idx>=0){const y=+m[2];return{ym:`${y}-${String(idx+1).padStart(2,'0')}`,year:y,monthNum:idx+1,monthName:MN[idx],monthShort:MS[idx],disp:MS[idx]+' '+y};}}
-  // MM/YYYY
-  m=v.match(/^(\d{1,2})\/(\d{4})$/);
-  if(m){const mn=+m[1],y=+m[2],i=mn-1;return{ym:`${y}-${String(mn).padStart(2,'0')}`,year:y,monthNum:mn,monthName:MN[i],monthShort:MS[i],disp:MS[i]+' '+y};}
-  return{ym:v,year:null,monthNum:null,monthName:v,monthShort:v,disp:v};
+  if(m){const idx=MS.findIndex(x=>x.toLowerCase()===m[1].slice(0,3).toLowerCase());if(idx>=0){const y=+m[2];return{ym:`${y}-${String(idx+1).padStart(2,'0')}`,year:y,monthNum:idx+1,monthShort:MS[idx],disp:MS[idx]+' '+y};}}
+  return{ym:v,year:null,monthNum:null,disp:v};
 }
-
-// ════════════════════════════════════════════════════════
-// EXPIRY RISK BUCKET (BI-MATCHED — en-dash labels)
-// ════════════════════════════════════════════════════════
 function calcBucket(days){
-  if(days===null||days===''||days===undefined||isNaN(Number(days))) return '';
+  if(days===null||days===''||isNaN(Number(days)))return'';
   days=Number(days);
-  if(days<=0)  return 'Expired';
-  if(days<=7)  return '<7 Days';
-  if(days<=30) return '7–30 Days';
-  if(days<=60) return '31–60 Days';
-  if(days<=90) return '61–90 Days';
-  return '>90 Days';
+  if(days<=0)return'Expired';if(days<=7)return'<7 Days';if(days<=30)return'7–30 Days';if(days<=60)return'31–60 Days';if(days<=90)return'61–90 Days';return'>90 Days';
 }
-
-// ════════════════════════════════════════════════════════
-// REQUIRED ACTION FROM BUCKET (BI-MATCHED)
-// ════════════════════════════════════════════════════════
 function calcReqAction(bkt){
-  if(bkt==='<7 Days'||bkt==='Expired') return 'RTC Price Change';
-  if(bkt==='7–30 Days') return 'Store Transfer';
-  return 'Monitor';
+  if(bkt==='<7 Days'||bkt==='Expired')return'RTC Price Change';
+  if(bkt==='7–30 Days')return'Store Transfer';
+  return'Monitor';
 }
 
-// ════════════════════════════════════════════════════════
-// BUILD LEDGER LOOKUP MAP
-// Composite key: Article|StoreCode|SubmissionMonth(YYYY-MM)|Week
-// This ensures action/comments only apply to the exact matching row
-// ════════════════════════════════════════════════════════
-function makeLedgerKey(article, storeCode, subMonthYM, week){
-  return [
-    (article||'').trim().toLowerCase(),
-    (storeCode||'').trim().toLowerCase(),
-    (subMonthYM||'').trim().toLowerCase(),
-    (week||'').trim().toLowerCase()
-  ].join('|');
-}
-
+// ══ LEDGER MAP ══
+function mkKey(a,s,y,w){return[a,s,y,w].map(x=>(x||'').trim().toLowerCase()).join('|');}
 function buildLedgerMap(ledger){
   const map={};
   ledger.forEach(r=>{
-    const article   = cv(r,'Article','ArticleNo','ArticleCode','article');
-    const storeCode = cv(r,'StoreCode','Store Code','store_code','Code');
-    const subMRaw   = cv(r,'SubmissionMonth','Submission Month','submission_month','Month');
-    const week      = cv(r,'Week','WeekNo','WeekNumber');
-    const sm        = parseSM(subMRaw);
-    const subMonthNorm = sm.ym || subMRaw || '';
-    if(!article) return; // must have article
-
-    const entry = {
-      actionTaken: cv(r,'ActionTaken','Action Taken','action_taken','ActionStatus'),
-      comments:    cv(r,'Comments','Comment','Notes','Remarks'),
-      targetQty:   +cv(r,'TargetQty','Target Qty','target_qty','Qty','Quantity')||0,
-    };
-
-    // Store under full composite key (most specific)
-    const fullKey = makeLedgerKey(article, storeCode, subMonthNorm, week);
-    if(!map[fullKey]) map[fullKey]=Object.assign({},entry);
-    else {
-      if(entry.actionTaken && !map[fullKey].actionTaken) map[fullKey].actionTaken=entry.actionTaken;
-      if(entry.comments    && !map[fullKey].comments)    map[fullKey].comments=entry.comments;
-    }
-
-    // Also store under partial key (no week) as fallback
-    const partKey = makeLedgerKey(article, storeCode, subMonthNorm, '');
-    if(!map[partKey]) map[partKey]=Object.assign({},entry);
-    else {
-      if(entry.actionTaken && !map[partKey].actionTaken) map[partKey].actionTaken=entry.actionTaken;
-      if(entry.comments    && !map[partKey].comments)    map[partKey].comments=entry.comments;
-    }
-
-    // Also store under article+storeCode only (broadest fallback)
-    const baseKey = makeLedgerKey(article, storeCode, '', '');
-    if(!map[baseKey]) map[baseKey]=Object.assign({},entry);
-    else {
-      if(entry.actionTaken && !map[baseKey].actionTaken) map[baseKey].actionTaken=entry.actionTaken;
-      if(entry.comments    && !map[baseKey].comments)    map[baseKey].comments=entry.comments;
-    }
+    const article=cv(r,'Article','ArticleNo'),storeCode=cv(r,'StoreCode','Store Code'),subMRaw=cv(r,'SubmissionMonth','Submission Month'),week=cv(r,'Week');
+    const sm=parseSM(subMRaw);const ym=sm.ym||subMRaw||'';if(!article)return;
+    const entry={actionTaken:cv(r,'ActionTaken','Action Taken'),comments:cv(r,'Comments','Remarks')};
+    [mkKey(article,storeCode,ym,week),mkKey(article,storeCode,ym,''),mkKey(article,storeCode,'','')].forEach(k=>{
+      if(!map[k])map[k]=Object.assign({},entry);
+      else{if(entry.actionTaken&&!map[k].actionTaken)map[k].actionTaken=entry.actionTaken;if(entry.comments&&!map[k].comments)map[k].comments=entry.comments;}
+    });
   });
   return map;
 }
 
-// ════════════════════════════════════════════════════════
-// PROCESS ROWS — JOIN ExpiryData + BuyerActionLedgers
-// ════════════════════════════════════════════════════════
-function processRows(rawExpiry, ledgerMap){
-  if(!rawExpiry.length) return [];
-
+// ══ PROCESS ══
+function processRows(rawExpiry,ledgerMap){
   return rawExpiry.map((r,idx)=>{
-    // ── Core identity columns (exact column names from ExpiryData_WebRaw)
-    const store     = cv(r,'Store','StoreName');
-    const storeCode = cv(r,'StoreCode','Store Code','store_code');
-    const article   = cv(r,'Article','ArticleNo','ArticleCode');
-    const barcode   = cv(r,'Barcode','EAN','barcode');
-    const desc      = cv(r,'Description','ProductName','Desc');
-    const week      = cv(r,'Week','WeekNo','WeekNumber');
-    const stock     = cv(r,'Stock','StockQty','stock_qty');
-    const dept      = cv(r,'Department','Dept','department','Category');
-
-    // ── Submission Month: derive from Timestamp (Google Sheets format)
-    // ExpiryData_WebRaw has Timestamp col like "Wed Apr 29 2026 11:00:00 GMT+0400 (توقيت الخليج)"
-    let subMonthRaw = cv(r,'SubmissionMonth','Submission Month','submission_month');
-    if(!subMonthRaw){
-      const ts = cv(r,'Timestamp','timestamp');
-      if(ts){
-        const d = parseDate(ts);
-        if(d) subMonthRaw = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      }
-    }
-    const sm = parseSM(subMonthRaw);
-    const subMonthOut = sm.ym || subMonthRaw || '';
-
-    // ── ExpiryDate: read directly from source (handles Google Sheets JS Date string)
-    // Source col is "ExpiryDate" — parse it for display + DaysLeft calculation
-    const expRaw = cv(r,'ExpiryDate','Expiry Date','expiry_date','ExpirationDate','BestBefore');
-    const expDate = parseDate(expRaw);
-    // Format as DD/MM/YYYY for display
-    const expDateDisp = expDate
-      ? String(expDate.getDate()).padStart(2,'0')+'/'+String(expDate.getMonth()+1).padStart(2,'0')+'/'+expDate.getFullYear()
-      : '';
-
-    // ── DaysLeft: read directly from source first; compute if missing
-    let daysLeft = null;
-    const dlRaw = cv(r,'DaysLeft','Days Left','days_left','DaysRemaining');
-    if(dlRaw !== ''){
-      const dlParsed = parseInt(dlRaw, 10);
-      if(!isNaN(dlParsed)) daysLeft = dlParsed;
-    }
-    if(daysLeft === null && expDate){
-      daysLeft = Math.round((expDate - TODAY) / 86400000);
-    }
-
-    // ── Risk bucket + required action from daysLeft
-    const bucket    = calcBucket(daysLeft);
-    const reqAction = calcReqAction(bucket);
-
-    // ── Week: use source value; fallback compute from expiry date
-    let wk = week;
-    if(!wk && expDate){
-      const j1=new Date(expDate.getFullYear(),0,1);
-      wk='W'+Math.ceil(((expDate-j1)/86400000+j1.getDay()+1)/7);
-    }
-
-    // ── JOIN with BuyerActionLedgers using composite key
-    // Try full key first, then fallback to no-week, then article+store only
-    const compositeKey = makeLedgerKey(article, storeCode, subMonthOut, wk);
-    const partialKey   = makeLedgerKey(article, storeCode, subMonthOut, '');
-    const baseKey      = makeLedgerKey(article, storeCode, '', '');
-    const ledgerRow    = ledgerMap[compositeKey] || ledgerMap[partialKey] || ledgerMap[baseKey] || {};
-    const actionTaken  = (ledgerRow.actionTaken||'').trim();
-    const comments     = (ledgerRow.comments||'').trim();
-    const targetQty    = ledgerRow.targetQty || 0;
-
-    // ── Action Status derived from actionTaken
-    const actionStatus = actionTaken ? 'Action Taken' : 'Pending Action';
-
-    return {
-      _idx: idx,
-      Store: store, StoreCode: storeCode,
-      Article: article, Barcode: barcode, Description: desc, Department: dept,
-      Stock:               stock,
-      ExpiryDate:          expDateDisp,
-      DaysLeft:            daysLeft !== null ? daysLeft : '',
-      'Expiry Risk Bucket': bucket,
-      'Required Action':   reqAction,
-      'Action Taken':      actionTaken,
-      Comments:            comments,
-      TargetQty:           targetQty,
-      'Action Status':     actionStatus,
-      Week:                wk,
-      'Submission Month':  subMonthOut,
-      'Sub Month Display': sm.disp || subMonthOut,
-      Month:               sm.monthName,
-      MonthShort:          sm.monthShort,
-      MonthNum:            sm.monthNum,
-      Year:                sm.year,
-      _raw: r
+    const store=cv(r,'Store','StoreName'),storeCode=cv(r,'StoreCode','Store Code'),
+          article=cv(r,'Article'),barcode=cv(r,'Barcode','EAN'),
+          desc=cv(r,'Description','ProductName'),week=cv(r,'Week'),
+          stock=cv(r,'Stock','StockQty'),dept=cv(r,'Department','Dept');
+    let subMonthRaw=cv(r,'SubmissionMonth','Submission Month');
+    if(!subMonthRaw){const ts=cv(r,'Timestamp');if(ts){const d=parseDate(ts);if(d)subMonthRaw=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}}
+    const sm=parseSM(subMonthRaw);const subMonthOut=sm.ym||subMonthRaw||'';
+    const expRaw=cv(r,'ExpiryDate','Expiry Date');const expDate=parseDate(expRaw);
+    const expDateDisp=expDate?String(expDate.getDate()).padStart(2,'0')+'/'+String(expDate.getMonth()+1).padStart(2,'0')+'/'+expDate.getFullYear():'';
+    let daysLeft=null;const dlRaw=cv(r,'DaysLeft','Days Left');
+    if(dlRaw!==''){const dlP=parseInt(dlRaw,10);if(!isNaN(dlP))daysLeft=dlP;}
+    if(daysLeft===null&&expDate)daysLeft=Math.round((expDate-TODAY)/86400000);
+    const bucket=calcBucket(daysLeft),reqAction=calcReqAction(bucket);
+    const tsRaw=cv(r,'Timestamp');const tsDate=parseDate(tsRaw);
+    const ledgerRow=ledgerMap[mkKey(article,storeCode,subMonthOut,week)]||ledgerMap[mkKey(article,storeCode,subMonthOut,'')]||ledgerMap[mkKey(article,storeCode,'','')]||{};
+    const actionTaken=(ledgerRow.actionTaken||'').trim(),comments=(ledgerRow.comments||'').trim();
+    return{
+      _idx:idx,Store:store,StoreCode:storeCode,Article:article,Barcode:barcode,
+      Description:desc,Department:dept,Stock:stock,ExpiryDate:expDateDisp,
+      DaysLeft:daysLeft!==null?daysLeft:'','Expiry Risk Bucket':bucket,
+      'Required Action':reqAction,'Action Taken':actionTaken,Comments:comments,
+      'Action Status':actionTaken?'Action Taken':'Pending Action',
+      Week:week,'Submission Month':subMonthOut,'Sub Month Display':sm.disp||subMonthOut,
+      MonthNum:sm.monthNum,Year:sm.year,_tsDate:tsDate,_raw:r
     };
   });
 }
 
-// ════════════════════════════════════════════════════════
-// LOAD ALL DATA
-// ════════════════════════════════════════════════════════
+// ══ LOAD ALL ══
 async function loadAll(){
-  const btn=document.getElementById('rfbtn');
-  btn.classList.add('spin');
-  setDot('e','loading','Fetching…');
-  setDot('l','loading','Fetching…');
+  const btn=document.getElementById('rfbtn');btn.classList.add('loading');
+  setDot('e','loading','Fetching ExpiryData…');
+  setDot('l','loading','Fetching ActionLedger…');
+  setDot('s','loading','Fetching Stores…');
 
-  const [er,lr] = await Promise.allSettled([fetchCSV(EXPIRY_URL), fetchCSV(LEDGER_URL)]);
+  const [er,lr,sr]=await Promise.allSettled([fetchCSV(EXPIRY_URL),fetchCSV(LEDGER_URL),fetchStores()]);
 
-  if(lr.status==='fulfilled'){
-    rawL=lr.value;
-    const lc=Object.keys(rawL[0]||{});
-    setDot('l','ok',`<strong>${rawL.length}</strong> rows · <strong>${lc.length}</strong> cols · ${lc.slice(0,6).join(', ')}${lc.length>6?'…':''}`);
-  } else {
-    rawL=[];
-    setDot('l','err','❌ '+lr.reason.message);
+  if(lr.status==='fulfilled'){rawL=lr.value;setDot('l','ok',`<strong>${rawL.length}</strong> ledger rows`);}
+  else{rawL=[];setDot('l','err','❌ '+lr.reason.message);}
+
+  if(sr.status==='fulfilled'){
+    allStoreCodes=sr.value;
+    setDot('s','ok',`<strong>${allStoreCodes.length}</strong> stores`);
+  }else{
+    allStoreCodes=[];setDot('s','err','❌ '+sr.reason.message);
   }
 
-  const ledgerMap = buildLedgerMap(rawL);
+  const ledgerMap=buildLedgerMap(rawL);
 
   if(er.status==='fulfilled'){
-    rawE=er.value;
-    proc=processRows(rawE, ledgerMap);
-    const ec=Object.keys(rawE[0]||{});
-    setDot('e','ok',`<strong>${rawE.length}</strong> rows · <strong>${ec.length}</strong> cols · ${ec.slice(0,6).join(', ')}${ec.length>6?'…':''}`);
-  } else {
-    rawE=[];proc=[];
-    setDot('e','err','❌ '+er.reason.message+' — ensure Apps Script deployed as "Anyone"');
-  }
+    rawE=er.value;proc=processRows(rawE,ledgerMap);
+    setDot('e','ok',`<strong>${rawE.length}</strong> expiry rows`);
+  }else{rawE=[];proc=[];setDot('e','err','❌ '+er.reason.message);}
 
   document.getElementById('ts').textContent=new Date().toLocaleTimeString();
-  btn.classList.remove('spin');
-  if(proc.length){ populateFilters(); renderPage(curPage); }
+  btn.classList.remove('loading');
+  if(proc.length||allStoreCodes.length){populateFilters();renderPage(curPage);}
 }
 
-function setDot(w,s,m){
-  document.getElementById('dot-'+w).className='sdot '+s;
-  document.getElementById('inf-'+w).innerHTML=m;
+async function fetchStores(){
+  try{
+    // Try JSON first (from Exp App script)
+    const r=await fetch(STORES_URL+'&_t='+Date.now());
+    const d=await r.json();
+    // d is array of [code, name] rows
+    codeToStore={};
+    const codes=[];
+    d.forEach(s=>{
+      const code=String(s[0]||'').trim();
+      const name=String(s[1]||'').trim();
+      if(code){codeToStore[code]=name;codes.push({code,name});}
+    });
+    return codes;
+  }catch(e){
+    // Fallback: build from proc
+    return [];
+  }
 }
 
-// ════════════════════════════════════════════════════════
-// MEASURES — all 16 BI measures (BI-matched)
-// ════════════════════════════════════════════════════════
-const F={
-  le7:  r=>r['Expiry Risk Bucket']==='<7 Days',
-  le30: r=>['<7 Days','7–30 Days'].includes(r['Expiry Risk Bucket']),
-  le60: r=>['<7 Days','7–30 Days','31–60 Days'].includes(r['Expiry Risk Bucket']),
-  le90: r=>['<7 Days','7–30 Days','31–60 Days','61–90 Days'].includes(r['Expiry Risk Bucket']),
-  b7:   r=>r['Expiry Risk Bucket']==='<7 Days',
-  b30:  r=>r['Expiry Risk Bucket']==='7–30 Days',
-  b60:  r=>r['Expiry Risk Bucket']==='31–60 Days',
-  b90:  r=>r['Expiry Risk Bucket']==='61–90 Days',
-  pend: r=>r['Action Status']==='Pending Action',
-  comp: r=>r['Action Status']==='Action Taken',
-};
-const cnt=(d,f)=>f?d.filter(f).length:d.length;
+function setDot(w,s,m){document.getElementById('dot-'+w).className='sdot '+s;document.getElementById('inf-'+w).innerHTML=m;}
 
-function allMeasures(d){
-  // Total Stock = sum of Stock column values (fallback to row count if Stock not numeric)
-  const stockSum = d.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
-  const totalStock = stockSum;
-  // Action Pending Stock = stock sum of RTC rows that are still Pending Action
-  // (i.e. no ActionTaken recorded in ledger for that row)
-  const actionPendingStock = d.filter(r=>r['Required Action']==='RTC Price Change'&&F.pend(r))
-    .reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
-
-  return {
-    'Items Expiring ≤ 7 Days':    cnt(d,F.le7),
-    'Items Expiring ≤ 30 Days':   cnt(d,F.le30),
-    'Items Expiring ≤ 60 Days':   cnt(d,F.le60),
-    'Near Expiry Stock ≤ 90 Days':cnt(d,F.le90),
-    'RTC <7':                      cnt(d,F.b7),
-    'RTC 7-30':                    cnt(d,F.b30),
-    'RTC 31-60':                   cnt(d,F.b60),
-    'RTC 61-90':                   cnt(d,F.b90),
-    'Total RTC Stock':             totalStock,
-    'Total Expiry Items':          totalStock,
-    'Pending Action Count':        cnt(d,F.pend),
-    'Completed Actions':           cnt(d,F.comp),
-    'Action Pending Stock':        actionPendingStock,
-    'Store Expiring ≤7 Days':     '→ see Overview table',
-    'Store Expiring ≤30 Days':    '→ see Overview table',
-    'Store Near Expiry Stock':    '→ see Overview table',
-  };
-}
-
-// ════════════════════════════════════════════════════════
-// FILTERS
-// ════════════════════════════════════════════════════════
-function uniq(d,k){return[...new Set(d.map(r=>r[k]).filter(Boolean))].sort();}
-
-// StoreCode → Store name map
-let codeToStore={};
-
+// ══ FILTERS ══
 function populateFilters(){
-  // Build code→store map
-  codeToStore={};
-  proc.forEach(r=>{if(r.StoreCode&&r.Store) codeToStore[r.StoreCode]=r.Store;});
+  // Build codeToStore from proc if stores fetch failed
+  proc.forEach(r=>{if(r.StoreCode&&r.Store&&!codeToStore[r.StoreCode])codeToStore[r.StoreCode]=r.Store;});
 
-  const codes   = [...new Set(proc.map(r=>r.StoreCode).filter(Boolean))].sort();
-  const weeks   = uniq(proc,'Week');
-  const buckets = [...new Set(proc.map(r=>r['Expiry Risk Bucket']).filter(Boolean))];
-  const actions = uniq(proc,'Required Action');
+  const codes=[...new Set(proc.map(r=>r.StoreCode).filter(Boolean))].sort();
+  const weeks=[...new Set(proc.map(r=>r.Week).filter(Boolean))].sort();
+  const buckets=[...new Set(proc.map(r=>r['Expiry Risk Bucket']).filter(Boolean))];
+  const ymSet=[...new Set(proc.map(r=>r['Submission Month']).filter(Boolean))].sort();
+  const ymOpts=ymSet.map(ym=>{const m=ym.match(/^(\d{4})-(\d{2})$/);return m?{val:ym,lbl:MS[+m[2]-1]+' '+m[1]}:{val:ym,lbl:ym};});
 
-  // Submission Month options: YYYY-MM value, "Apr 2026" label, sorted chronologically
-  const ymSet = [...new Set(proc.map(r=>r['Submission Month']).filter(Boolean))].sort();
-  const ymOpts = ymSet.map(ym=>{
-    const m=ym.match(/^(\d{4})-(\d{2})$/);
-    return m ? {val:ym, lbl:MS[+m[2]-1]+' '+m[1]} : {val:ym,lbl:ym};
-  });
-  const years=[...new Set(proc.map(r=>r.Year).filter(Boolean))].sort().map(String);
-
-  fill('ss-code',codes);fill('ss-week',weeks);fill('ss-year',years);fillOpts('ss-ym',ymOpts);
-  fill('ds-code',codes);fill('ds-week',weeks);fill('ds-bucket',buckets);fill('ds-action',actions);fillOpts('ds-ym',ymOpts);
-  updateStoreDisp('ss');updateStoreDisp('ds');
+  fill('ss-code',codes);fill('ss-week',weeks);fillOpts('ss-ym',ymOpts);
+  fill('ac-code',codes);fill('ac-week',weeks);fill('ac-bucket',buckets);fillOpts('ac-ym',ymOpts);
+  fillOpts('sub-ym',ymOpts);fill('sub-week',weeks);
+  updateStoreDisp('ss');updateStoreDisp('ac');
 }
-
-function fill(id,vals){
-  const el=document.getElementById(id);if(!el)return;
-  const cur=el.value;
-  el.innerHTML='<option value="">All</option>';
-  vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});
-  if(vals.includes(cur))el.value=cur;
-}
-function fillOpts(id,opts){
-  const el=document.getElementById(id);if(!el)return;
-  const cur=el.value;
-  el.innerHTML='<option value="">All Months</option>';
-  opts.forEach(({val,lbl})=>{const o=document.createElement('option');o.value=val;o.textContent=lbl;el.appendChild(o);});
-  if(opts.some(o=>o.val===cur))el.value=cur;
-}
-
+function fill(id,vals){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">All</option>';vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});if(vals.includes(cur))el.value=cur;}
+function fillOpts(id,opts){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">All</option>';opts.forEach(({val,lbl})=>{const o=document.createElement('option');o.value=val;o.textContent=lbl;el.appendChild(o);});if(opts.some(o=>o.val===cur))el.value=cur;}
 function gv(id){const el=document.getElementById(id);return el?el.value:'';}
-
-// StoreCode filter changes → auto-update store name display
-function onCodeChange(pfx){
-  updateStoreDisp(pfx);
-  if(pfx==='ss')renderSummary();else renderDetail();
-}
-function updateStoreDisp(pfx){
-  const code=gv(pfx+'-code');
-  const disp=document.getElementById(pfx+'-store-disp');
-  if(disp) disp.textContent = code ? (codeToStore[code]||code) : '—';
-}
-
+function onCodeChange(pfx){updateStoreDisp(pfx);if(pfx==='ss')renderStores();else renderActions();}
+function updateStoreDisp(pfx){const code=gv(pfx+'-code');const disp=document.getElementById(pfx+'-store-disp');if(disp)disp.textContent=code?(codeToStore[code]||code):'—';}
 function fData(pfx){
   let d=[...proc];
   const code=gv(pfx+'-code'),ym=gv(pfx+'-ym'),week=gv(pfx+'-week');
-  if(code) d=d.filter(r=>r.StoreCode===code);
-  if(ym)   d=d.filter(r=>r['Submission Month']===ym);
-  if(week) d=d.filter(r=>r.Week===week);
-  if(pfx==='ss'){
-    const yr=gv('ss-year');if(yr)d=d.filter(r=>String(r.Year)===yr);
-  }
-  if(pfx==='ds'){
-    const st=gv('ds-status'),bk=gv('ds-bucket'),ac=gv('ds-action');
+  if(code)d=d.filter(r=>r.StoreCode===code);
+  if(ym)d=d.filter(r=>r['Submission Month']===ym);
+  if(week)d=d.filter(r=>r.Week===week);
+  if(pfx==='ac'){
+    const st=gv('ac-status'),bk=gv('ac-bucket');
     if(st)d=d.filter(r=>r['Action Status']===st);
     if(bk)d=d.filter(r=>r['Expiry Risk Bucket']===bk);
-    if(ac)d=d.filter(r=>r['Required Action']===ac);
   }
   return d;
 }
+function resetF(pfx){document.querySelectorAll(`[id^="${pfx}-"]`).forEach(el=>{if(el.tagName==='SELECT')el.value='';});updateStoreDisp(pfx);if(pfx==='ss')renderStores();else renderActions();}
 
-function resetF(pfx){
-  document.querySelectorAll(`[id^="${pfx}-"]`).forEach(el=>{
-    if(el.tagName==='SELECT')el.value='';
-  });
-  updateStoreDisp(pfx);
-  if(pfx==='ss')renderSummary();else renderDetail();
+// filter overdue in action center
+function filterOverdue(){
+  document.getElementById('ac-status').value='Pending Action';
+  renderActions();
 }
 
-// ════════════════════════════════════════════════════════
-// RENDER — OVERVIEW
-// ════════════════════════════════════════════════════════
-function renderOverview(){
-  const d=proc, m=allMeasures(d);
-  document.getElementById('kpi-ov').innerHTML=
-    K('Total Stock (All Stores)','cb','📦',m['Total RTC Stock'],'Sum of all items across all stores')+
-    K('Items Expiring ≤ 7 Days','cr','🔴',m['Items Expiring ≤ 7 Days'])+
-    K('Items Expiring ≤ 30 Days','co','🟠',m['Items Expiring ≤ 30 Days'])+
-    K('Near Expiry ≤ 90 Days','cg','🟢',m['Near Expiry Stock ≤ 90 Days'])+
-    K('Pending Actions','co','⏳',m['Pending Action Count'])+
-    K('Action Taken','ct','✅',m['Completed Actions'])+
-    K('Action Pending Stock','cp','⚠️',m['Action Pending Stock']);
+// ══ HELPERS ══
+const F={
+  le7:r=>r['Expiry Risk Bucket']==='<7 Days',
+  le30:r=>['<7 Days','7–30 Days'].includes(r['Expiry Risk Bucket']),
+  b7:r=>r['Expiry Risk Bucket']==='<7 Days',
+  b30:r=>r['Expiry Risk Bucket']==='7–30 Days',
+  b60:r=>r['Expiry Risk Bucket']==='31–60 Days',
+  b90:r=>r['Expiry Risk Bucket']==='61–90 Days',
+  pend:r=>r['Action Status']==='Pending Action',
+  comp:r=>r['Action Status']==='Action Taken'
+};
+const cnt=(d,f)=>f?d.filter(f).length:d.length;
+function bktCls(b){if(!b)return'na';if(b==='<7 Days'||b==='Expired')return'crit';if(b==='7–30 Days')return'high';if(b==='31–60 Days')return'med';return'low';}
+function KPI(label,cls,val,sub=''){return`<div class="kpi ${cls}"><div class="kpi-label">${label}</div><div class="kpi-value">${typeof val==='number'?val.toLocaleString():val}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;}
+function BR(label,val,max,color){const p=max>0?(val/max*100).toFixed(1):0;return`<div class="bar-row"><div class="bar-lbl" title="${label}">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"><span class="bar-val">${val}</span></div></div></div>`;}
+function fmtDate(v){if(!v)return'—';const d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-GB');}
 
-  // Aggregate by StoreCode (primary key), store name alongside
-  const sm={};
-  d.forEach(r=>{
-    const k=r.StoreCode||'?';
-    if(!sm[k])sm[k]={code:k,store:r.Store||k,total:0,l7:0,l30:0,l60:0,l90:0,p:0,c:0};
-    sm[k].total++;
-    if(F.le7(r))sm[k].l7++;if(F.le30(r))sm[k].l30++;
-    if(F.le60(r))sm[k].l60++;if(F.le90(r))sm[k].l90++;
-    if(F.pend(r))sm[k].p++;if(F.comp(r))sm[k].c++;
+// days bar helper
+function daysBar(dlNum){
+  if(dlNum===null)return'—';
+  const clr=dlNum<=7?'var(--red)':dlNum<=30?'var(--orange)':dlNum<=60?'var(--yellow)':'var(--green)';
+  const pct=Math.min(100,Math.max(0,(dlNum/90)*100));
+  return`<div class="days-bar"><span class="mono" style="color:${clr}">${dlNum}</span><div class="days-bar-track"><div class="days-bar-fill" style="width:${pct}%;background:${clr}"></div></div></div>`;
+}
+
+// ══ OVERDUE DETECTION ══
+function detectOverdue(){
+  const cnt=proc.filter(r=>r['Action Status']==='Pending Action'&&r._tsDate&&Math.round((TODAY-r._tsDate)/86400000)>=14).length;
+  ['overdue-banner','overdue-banner2'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    if(cnt>0){const c=document.getElementById(id==='overdue-banner'?'overdue-count':'overdue-count2');if(c)c.textContent=cnt;el.style.display='flex';}
+    else el.style.display='none';
   });
+  return cnt;
+}
+
+// ══ OVERVIEW ══
+function renderOverview(){
+  detectOverdue();
+  const d=proc;
+  const totalStock=d.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
+  document.getElementById('kpi-ov').innerHTML=
+    KPI('Total Items','neu',d.length)+
+    KPI('Total Stock','blu',totalStock)+
+    KPI('Critical ≤7 Days','red',cnt(d,F.le7),'Immediate RTC needed')+
+    KPI('≤30 Days','ora',cnt(d,F.le30))+
+    KPI('Pending Actions','ora',cnt(d,F.pend))+
+    KPI('Action Taken','grn',cnt(d,F.comp));
+
+  const sm={};d.forEach(r=>{const k=r.StoreCode||'?';if(!sm[k])sm[k]={code:k,store:r.Store||k,total:0,l7:0,l30:0,l60:0,p:0,c:0};sm[k].total++;if(F.le7(r))sm[k].l7++;if(F.le30(r))sm[k].l30++;if(F.le30(r))sm[k].l60++;if(F.pend(r))sm[k].p++;if(F.comp(r))sm[k].c++;});
   const stores=Object.values(sm).sort((a,b)=>b.total-a.total);
-  document.getElementById('b-stores').textContent=stores.length+' stores';
+  document.getElementById('b-ov').textContent=stores.length+' stores';
+  document.getElementById('b-crit').textContent=stores.length+' stores';
   const mxT=Math.max(...stores.map(s=>s.total),1),mxC=Math.max(...stores.map(s=>s.l7),1);
-  // Charts: label = "CODE · Store Name"
-  document.getElementById('ch-tot').innerHTML=stores.slice(0,15).map(s=>BR(s.code+' · '+s.store,s.total,mxT,'var(--a2)')).join('');
-  document.getElementById('ch-crit').innerHTML=stores.slice(0,15).map(s=>BR(s.code+' · '+s.store,s.l7,mxC,'var(--red)')).join('');
-  // Table: click row → go to store detail with that StoreCode pre-filtered
-  document.querySelector('#t-ov tbody').innerHTML=stores.map(s=>`<tr onclick="drillToStore('${s.code}')" style="cursor:pointer">
-    <td class="mono bold">${s.code}</td><td class="bold">${s.store}</td>
+  document.getElementById('ch-tot').innerHTML=stores.slice(0,12).map(s=>BR(s.code,s.total,mxT,'var(--blue)')).join('');
+  document.getElementById('ch-crit').innerHTML=stores.slice(0,12).map(s=>BR(s.code,s.l7,mxC,'var(--red)')).join('');
+  document.querySelector('#t-ov tbody').innerHTML=stores.map(s=>`<tr onclick="drillStore('${s.code}')" title="Click to see ${s.store} in Action Center">
+    <td class="mono b">${s.code}</td><td class="b">${s.store}</td>
     <td style="color:var(--red)" class="mono">${s.l7}</td>
     <td style="color:var(--orange)" class="mono">${s.l30}</td>
     <td style="color:var(--yellow)" class="mono">${s.l60}</td>
-    <td style="color:var(--green)" class="mono">${s.l90}</td>
-    <td class="mono bold">${s.total}</td>
+    <td class="mono b">${s.total}</td>
     <td><span class="badge pend">${s.p}</span></td>
-    <td><span class="badge comp">${s.c}</span></td></tr>`).join('');
-  document.getElementById('b-ov').textContent=stores.length+' stores';
+    <td><span class="badge done">${s.c}</span></td>
+  </tr>`).join('');
 }
+function drillStore(code){const el=document.getElementById('ac-code');if(el){el.value=code;updateStoreDisp('ac');}go('actions');}
 
-// Navigate from Overview → Store Detail with StoreCode pre-filtered
-function drillToStore(code){
-  const el=document.getElementById('ds-code');
-  if(el){ el.value=code; updateStoreDisp('ds'); }
-  go('detail');
-}
+// ══ ACTION CENTER ══
+function renderActions(){
+  detectOverdue();
+  const d=fData('ac');
+  const searchTerm=gv('globalSearch').toLowerCase();
+  const filtered=searchTerm?d.filter(r=>
+    (r.Article||'').toLowerCase().includes(searchTerm)||
+    (r.Description||'').toLowerCase().includes(searchTerm)||
+    (r.Barcode||'').toLowerCase().includes(searchTerm)
+  ):d;
 
-// ════════════════════════════════════════════════════════
-// RENDER — STORE SUMMARY
-// ════════════════════════════════════════════════════════
-function renderSummary(){
-  const d=fData('ss'),m=allMeasures(d);
-  document.getElementById('kpi-sum').innerHTML=
-    K('Total Stock','cb','📦',m['Total RTC Stock'])+
-    K('RTC <7 Days','cr','🔴',m['RTC <7'])+
-    K('RTC 7–30 Days','co','🟠',m['RTC 7-30'])+
-    K('RTC 31–60 Days','cy','🟡',m['RTC 31-60'])+
-    K('RTC 61–90 Days','cg','🟢',m['RTC 61-90'])+
-    K('Pending','co','⏳',m['Pending Action Count'])+
-    K('Action Taken','ct','✅',m['Completed Actions']);
+  const totalStock=filtered.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
+  document.getElementById('kpi-ac').innerHTML=
+    KPI('Items','neu',filtered.length)+
+    KPI('Total Stock','blu',totalStock)+
+    KPI('Critical ≤7','red',cnt(filtered,F.le7))+
+    KPI('≤30 Days','ora',cnt(filtered,F.le30))+
+    KPI('Pending','ora',cnt(filtered,F.pend))+
+    KPI('Actioned','grn',cnt(filtered,F.comp));
 
-  const am={};
-  d.forEach(r=>{const k=r.StoreCode||r.Store||'?';if(!am[k])am[k]={p:0,c:0};if(F.pend(r))am[k].p++;if(F.comp(r))am[k].c++;});
-  const aArr=Object.entries(am).sort((a,b)=>b[1].p-a[1].p);
-  const mxA=Math.max(...aArr.map(([,v])=>v.p+v.c),1);
-  document.getElementById('ch-act').innerHTML=aArr.slice(0,12).map(([k,v])=>
-    `<div class="brow"><div class="blbl">${k}</div><div class="btrack"><div class="bfill" style="width:${(v.p/mxA*100).toFixed(1)}%;background:var(--orange)"><span class="bv">${v.p}</span></div></div></div>`
-  ).join('');
-
-  const rm={};
-  d.forEach(r=>{const k=r.StoreCode||r.Store||'?';if(!rm[k])rm[k]=[0,0,0,0];
-    if(F.b7(r))rm[k][0]++;if(F.b30(r))rm[k][1]++;if(F.b60(r))rm[k][2]++;if(F.b90(r))rm[k][3]++;});
-  const rArr=Object.entries(rm).sort((a,b)=>b[1].reduce((x,y)=>x+y,0)-a[1].reduce((x,y)=>x+y,0));
-  const mxR=Math.max(...rArr.map(([,v])=>v.reduce((a,b)=>a+b,0)),1);
-  const C4=['var(--red)','var(--orange)','var(--yellow)','var(--green)'];
-  document.getElementById('ch-rtc').innerHTML=rArr.slice(0,12).map(([k,segs])=>{
-    const t=segs.reduce((a,b)=>a+b,0);
-    return `<div class="srow"><div class="blbl">${k}</div><div class="strack">${segs.map((v,i)=>`<div class="sseg" style="width:${(v/mxR*100).toFixed(1)}%;background:${C4[i]}" title="${v}"></div>`).join('')}</div><span style="font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;width:26px;text-align:right">${t}</span></div>`;
-  }).join('');
-
-  const wm={};
-  d.forEach(r=>{
-    const k=(r.Year||'0')+'|'+(r.MonthNum||'99')+'|'+(r.Week||'');
-    if(!wm[k])wm[k]={disp:r['Sub Month Display']||'',year:r.Year,week:r.Week,mi:r.MonthNum,r7:0,r30:0,r60:0,r90:0,tot:0,p:0,c:0};
-    wm[k].tot++;
-    if(F.b7(r))wm[k].r7++;if(F.b30(r))wm[k].r30++;if(F.b60(r))wm[k].r60++;if(F.b90(r))wm[k].r90++;
-    if(F.pend(r))wm[k].p++;if(F.comp(r))wm[k].c++;
-  });
-  const wArr=Object.values(wm).sort((a,b)=>((b.year||0)-(a.year||0))||((b.mi||99)-(a.mi||99)));
-  document.querySelector('#t-sum tbody').innerHTML=wArr.map(w=>`<tr>
-    <td class="bold">${w.disp||'—'}</td><td class="mono">${w.year||'—'}</td><td class="mono">${w.week||'—'}</td>
-    <td style="color:var(--red)" class="mono">${w.r7}</td>
-    <td style="color:var(--orange)" class="mono">${w.r30}</td>
-    <td style="color:var(--yellow)" class="mono">${w.r60}</td>
-    <td style="color:var(--green)" class="mono">${w.r90}</td>
-    <td class="mono bold">${w.tot}</td>
-    <td><span class="badge pend">${w.p}</span></td>
-    <td><span class="badge comp">${w.c}</span></td></tr>`).join('');
-  document.getElementById('b-sum').textContent=wArr.length+' weeks';
-
-  // ── Article Stock by Week pivot table
-  // Collect sorted unique week labels from filtered data
-  const allWeeks=[...new Set(d.map(r=>r.Week).filter(Boolean))].sort();
-  // Key per unique article+store+month combo
-  const artMap={};
-  d.forEach(r=>{
-    const artKey=(r.StoreCode||'')+'|'+(r['Submission Month']||'')+'|'+(r.Article||'');
-    if(!artMap[artKey]){
-      artMap[artKey]={
-        StoreCode:r.StoreCode||'—', Store:r.Store||'—',
-        'Submission Month':r['Sub Month Display']||r['Submission Month']||'—',
-        Article:r.Article||'—', Description:r.Description||'—',
-        Department:r.Department||'—', ExpiryDate:r.ExpiryDate||'—',
-        weeks:{}
-      };
-    }
-    // Sum stock per week (multiple rows with same week → sum)
-    const wk=r.Week||'';
-    if(wk){
-      const sv=parseFloat(r.Stock);
-      artMap[artKey].weeks[wk]=(artMap[artKey].weeks[wk]||0)+(isNaN(sv)?1:sv);
-    }
-  });
-  const artRows=Object.values(artMap).sort((a,b)=>
-    (a.StoreCode+a['Submission Month']+a.Article).localeCompare(b.StoreCode+b['Submission Month']+b.Article));
-  document.getElementById('b-artweek').textContent=artRows.length+' articles';
-
-  // Build dynamic header: fixed cols + one col per week (sorted)
-  const fixedCols=['StoreCode','Store','Submission Month','Article','Description','Department','ExpiryDate'];
-  const hdrRow=document.getElementById('t-artweek-hdr');
-  hdrRow.innerHTML=fixedCols.map(c=>`<th>${c}</th>`).join('')+allWeeks.map(w=>`<th>${w} Stock</th>`).join('');
-
-  document.querySelector('#t-artweek tbody').innerHTML=artRows.map(row=>
-    `<tr>`+
-    fixedCols.map(c=>`<td class="${c==='StoreCode'||c==='Article'?'mono':''} ${c==='StoreCode'||c==='Store'||c==='Article'?'bold':''}">${row[c]}</td>`).join('')+
-    allWeeks.map(w=>{
-      const v=row.weeks[w];
-      return v!==undefined
-        ? `<td class="mono" style="text-align:right;color:var(--accent)">${v}</td>`
-        : `<td style="color:var(--t3);text-align:center">—</td>`;
-    }).join('')+
-    `</tr>`
-  ).join('');
-}
-
-// ════════════════════════════════════════════════════════
-// RENDER — STORE DETAIL
-// ════════════════════════════════════════════════════════
-function renderDetail(){
-  const d=fData('ds'),m=allMeasures(d);
-  // Total Stock and Action Pending Stock as separate KPIs
-  document.getElementById('kpi-det').innerHTML=
-    K('Total Stock','cb','📦',m['Total RTC Stock'],'All items in filtered view')+
-    K('Action Pending Stock','cp','⚠️',m['Action Pending Stock'],'RTC pending minus ledger')+
-    K('Critical ≤7 Days','cr','🔴',m['RTC <7'])+
-    K('≤30 Days','co','🟠',m['Items Expiring ≤ 30 Days'])+
-    K('Pending Actions','co','⏳',m['Pending Action Count'])+
-    K('Action Taken','ct','✅',m['Completed Actions']);
-
-  const ap={};
-  d.filter(F.pend).forEach(r=>{const a=r.Article||'Unknown';ap[a]=(ap[a]||0)+1;});
-  renderDonut(Object.entries(ap).sort((a,b)=>b[1]-a[1]).slice(0,8));
-
-  const BO=['<7 Days','7–30 Days','31–60 Days','61–90 Days','>90 Days','Expired'];
-  const BC={'<7 Days':'var(--red)','7–30 Days':'var(--orange)','31–60 Days':'var(--yellow)','61–90 Days':'var(--green)','>90 Days':'var(--a2)','Expired':'var(--t3)'};
-  const bb={};d.forEach(r=>{const b=r['Expiry Risk Bucket']||'Unknown';bb[b]=(bb[b]||0)+1;});
-  const bArr=Object.entries(bb).sort((a,b)=>(BO.indexOf(a[0])<0?99:BO.indexOf(a[0]))-(BO.indexOf(b[0])<0?99:BO.indexOf(b[0])));
-  const mxB=Math.max(...bArr.map(x=>x[1]),1);
-  document.getElementById('ch-bkt').innerHTML=bArr.map(([l,v])=>BR(l,v,mxB,BC[l]||'var(--a2)')).join('');
-
-  document.querySelector('#t-det tbody').innerHTML=d.map(r=>{
+  document.querySelector('#t-ac tbody').innerHTML=filtered.map(r=>{
     const bc=bktCls(r['Expiry Risk Bucket']);
-    const sc=r['Action Status']==='Pending Action'?'pend':'comp';
-    const dlNum=r.DaysLeft!==''&&r.DaysLeft!==null&&r.DaysLeft!==undefined?Number(r.DaysLeft):null;
-    const dl=dlNum!==null?dlNum:'—';
-    const dlc=dlNum!==null?(dlNum<=7?'var(--red)':dlNum<=30?'var(--orange)':dlNum<=60?'var(--yellow)':'var(--green)'):'var(--t3)';
-    const url=buildURL(r);
-    return `<tr onclick="showPop(${r._idx})">
-      <td class="bold">${r.Store||'—'}</td>
-      <td class="mono">${r.StoreCode||'—'}</td>
+    const sc=r['Action Status']==='Pending Action'?'pend':'done';
+    const dlNum=r.DaysLeft!==''&&r.DaysLeft!==null?Number(r.DaysLeft):null;
+    const daysSinceSub=r._tsDate?Math.round((TODAY-r._tsDate)/86400000):0;
+    const isOverdue=r['Action Status']==='Pending Action'&&daysSinceSub>=14;
+    const isSel=selectedIndices.has(r._idx);
+    return`<tr class="${isOverdue?'overdue':''} ${isSel?'selected':''}" onclick="rowClick(event,${r._idx})">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="row-chk" data-idx="${r._idx}" onchange="onRowCheck(${r._idx},this.checked)" ${isSel?'checked':''}></td>
+      <td class="mono b">${r.StoreCode||'—'}</td>
+      <td class="b">${r.Store||'—'}</td>
       <td class="mono">${r.Week||'—'}</td>
-      <td>${r['Sub Month Display']||r['Submission Month']||'—'}</td>
-      <td class="mono" style="font-size:10px">${r.Barcode||'—'}</td>
+      <td>${r['Sub Month Display']||'—'}</td>
       <td class="mono" style="font-size:10px">${r.Article||'—'}</td>
-      <td>${r.Description||'—'}</td>
+      <td>${r.Description||'—'}${isOverdue?` <span class="overdue-tag">⚠ Overdue</span>`:''}</td>
       <td>${r.Department||'—'}</td>
       <td class="mono">${r.Stock||'—'}</td>
       <td class="mono">${r.ExpiryDate||'—'}</td>
-      <td class="mono bold" style="color:${dlc}">${dl}</td>
+      <td>${daysBar(dlNum)}</td>
       <td><span class="badge ${bc}">${r['Expiry Risk Bucket']||'—'}</span></td>
       <td>${r['Required Action']||'—'}</td>
       <td><span class="badge ${sc}">${r['Action Status']||'—'}</span></td>
       <td>${r['Action Taken']||'—'}</td>
-      <td>${r.Comments||'—'}</td>
-      <td>${url?`<a class="alink" href="${url}" target="_blank" onclick="event.stopPropagation()">↗</a>`:'—'}</td>
     </tr>`;
   }).join('');
-  document.getElementById('b-det').textContent=d.length+' items';
+  document.getElementById('b-ac').textContent=filtered.length+' items';
+  updateToolbar();
 }
 
-function bktCls(b){
-  if(!b) return 'na';
-  if(b==='<7 Days'||b==='Expired') return 'crit';
-  if(b==='7–30 Days') return 'high';
-  if(b==='31–60 Days') return 'med';
-  return 'low';
+// ══ SEARCH ══
+function onSearch(){
+  if(curPage==='actions') renderActions();
 }
 
-// ════════════════════════════════════════════════════════
-// ARTICLE POPUP
-// ════════════════════════════════════════════════════════
+// ══ ROW SELECTION ══
+function rowClick(event,idx){
+  if(event.target.tagName==='INPUT')return;
+  // Click on row body → show popup
+  showPop(idx);
+}
+function onRowCheck(idx,checked){
+  if(checked)selectedIndices.add(idx);else selectedIndices.delete(idx);
+  const row=document.querySelector(`[data-idx="${idx}"]`)?.closest('tr');
+  if(row){if(checked)row.classList.add('selected');else row.classList.remove('selected');}
+  updateToolbar();
+}
+function toggleAll(masterChk){
+  const chks=document.querySelectorAll('.row-chk');
+  chks.forEach(chk=>{
+    chk.checked=masterChk.checked;
+    const idx=+chk.dataset.idx;
+    if(masterChk.checked)selectedIndices.add(idx);else selectedIndices.delete(idx);
+    const row=chk.closest('tr');
+    if(row){if(masterChk.checked)row.classList.add('selected');else row.classList.remove('selected');}
+  });
+  updateToolbar();
+}
+function selectAllVisible(){
+  const chks=document.querySelectorAll('.row-chk');
+  chks.forEach(chk=>{chk.checked=true;selectedIndices.add(+chk.dataset.idx);chk.closest('tr')?.classList.add('selected');});
+  updateToolbar();
+}
+function clearSelection(){
+  selectedIndices.clear();
+  document.querySelectorAll('.row-chk').forEach(c=>{c.checked=false;c.closest('tr')?.classList.remove('selected');});
+  const mChk=document.getElementById('chk-all');if(mChk)mChk.checked=false;
+  updateToolbar();
+}
+function updateToolbar(){
+  const tb=document.getElementById('action-toolbar');
+  if(selectedIndices.size>0){
+    tb.classList.add('visible');
+    document.getElementById('sel-count').textContent=selectedIndices.size;
+  }else{tb.classList.remove('visible');}
+}
+
+// ══ CONFIRM & EXECUTE ACTION ══
+function confirmAction(action){
+  if(!selectedIndices.size){toast('No rows selected','error');return;}
+  pendingAction=action;
+  const items=proc.filter(r=>selectedIndices.has(r._idx));
+  document.getElementById('confirm-title').textContent=`Confirm: ${action}`;
+  document.getElementById('confirm-desc').textContent=`Apply "${action}" to ${items.length} selected item${items.length>1?'s':''}? This will be written to the BuyerActionLedgers sheet.`;
+  document.getElementById('confirm-items').innerHTML=items.map(r=>`<div class="action-confirm-item">${r.Article||'—'} · ${r.Description||''} · ${r.StoreCode||''} · ${r.Week||''}</div>`).join('');
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+async function executeAction(){
+  const items=proc.filter(r=>selectedIndices.has(r._idx));
+  document.getElementById('confirm-overlay').classList.remove('open');
+  document.getElementById('confirm-ok-btn').textContent='Saving…';
+
+  let successCount=0;
+  for(const r of items){
+    try{
+      await fetch(LEDGER_POST,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({
+          action:       'writeLedger',
+          Article:      r.Article,
+          StoreCode:    r.StoreCode,
+          Store:        r.Store,
+          Week:         r.Week,
+          SubmissionMonth: r['Submission Month'],
+          ActionTaken:  pendingAction,
+          Comments:     '',
+          Timestamp:    new Date().toISOString()
+        })
+      });
+      // Update local state optimistically
+      r['Action Taken']=pendingAction;
+      r['Action Status']='Action Taken';
+      successCount++;
+    }catch(err){console.error('Write failed for',r.Article,err);}
+  }
+
+  toast(`✓ ${successCount} item${successCount>1?'s':''} marked as "${pendingAction}"`, 'success', 3000);
+  clearSelection();
+  // Refresh data after short delay to sync
+  setTimeout(()=>loadAll(), 1500);
+}
+
+// ══ STORE SUMMARY ══
+function renderStores(){
+  const d=fData('ss');
+  const totalStock=d.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
+  document.getElementById('kpi-sum').innerHTML=
+    KPI('Total Stock','neu',totalStock)+KPI('<7 Days','red',cnt(d,F.b7))+KPI('7–30 Days','ora',cnt(d,F.b30))+KPI('31–60 Days','yel',cnt(d,F.b60))+KPI('Pending','ora',cnt(d,F.pend))+KPI('Actioned','grn',cnt(d,F.comp));
+
+  // Week comparison
+  const allWeeks=[...new Set(d.map(r=>r.Week).filter(Boolean))].sort();
+  const wkTotals=allWeeks.map(w=>({week:w,count:d.filter(r=>r.Week===w).length}));
+  document.getElementById('b-wk').textContent=allWeeks.length+' weeks';
+  document.getElementById('wk-compare').innerHTML=wkTotals.map((w,i)=>{
+    const prev=wkTotals[i-1];
+    const cls=prev?(w.count>prev.count?'up':w.count<prev.count?'dn':''):'';
+    const trend=prev?(w.count>prev.count?'↑ Rising — worsening':w.count<prev.count?'↓ Falling — improving':'→ Same'):'First week';
+    return`<div class="wk-cell ${cls}"><div class="wk-cell-lbl">${w.week}</div><div class="wk-cell-val">${w.count}</div><div class="wk-cell-trend">${trend}</div></div>`;
+  }).join('');
+
+  // Article by week pivot
+  const awWeeks=[...new Set(d.map(r=>r.Week).filter(Boolean))].sort();
+  const artMap={};
+  d.forEach(r=>{
+    const k=(r.StoreCode||'')+'|'+(r['Submission Month']||'')+'|'+(r.Article||'');
+    if(!artMap[k])artMap[k]={StoreCode:r.StoreCode||'',Store:r.Store||'','Submission Month':r['Sub Month Display']||'',Article:r.Article||'',Description:r.Description||'',ExpiryDate:r.ExpiryDate||'',weeks:{}};
+    const wk=r.Week||'';if(wk){const sv=parseFloat(r.Stock);artMap[k].weeks[wk]=(artMap[k].weeks[wk]||0)+(isNaN(sv)?1:sv);}
+  });
+  const artRows=Object.values(artMap).sort((a,b)=>(a.StoreCode+a.Article).localeCompare(b.StoreCode+b.Article));
+  document.getElementById('b-artweek').textContent=artRows.length+' articles';
+  const fixedCols=['StoreCode','Store','Submission Month','Article','Description','ExpiryDate'];
+  document.getElementById('t-artweek-hdr').innerHTML=fixedCols.map(c=>`<th>${c}</th>`).join('')+awWeeks.map(w=>`<th>${w}</th>`).join('');
+  document.querySelector('#t-artweek tbody').innerHTML=artRows.map(row=>`<tr>`+
+    fixedCols.map(c=>`<td class="${c==='Article'||c==='StoreCode'?'mono':''} ${c==='Article'||c==='StoreCode'||c==='Store'?'b':''}">${row[c]}</td>`).join('')+
+    awWeeks.map(w=>{const v=row.weeks[w];return v!==undefined?`<td class="mono" style="text-align:right;color:var(--green);font-weight:600">${v}</td>`:`<td style="color:var(--t3);text-align:center">—</td>`;}).join('')+
+    `</tr>`).join('');
+
+  // Week breakdown
+  const wm={};
+  d.forEach(r=>{const k=(r.Year||'0')+'|'+(r.MonthNum||'99')+'|'+(r.Week||'');if(!wm[k])wm[k]={disp:r['Sub Month Display']||'',week:r.Week,r7:0,r30:0,r60:0,r90:0,tot:0,p:0,c:0};wm[k].tot++;if(F.b7(r))wm[k].r7++;if(F.b30(r))wm[k].r30++;if(F.b60(r))wm[k].r60++;if(F.b90(r))wm[k].r90++;if(F.pend(r))wm[k].p++;if(F.comp(r))wm[k].c++;});
+  const wArr=Object.values(wm);
+  document.querySelector('#t-sum tbody').innerHTML=wArr.map(w=>`<tr><td class="b">${w.disp||'—'}</td><td class="mono">${w.week||'—'}</td><td style="color:var(--red)" class="mono">${w.r7}</td><td style="color:var(--orange)" class="mono">${w.r30}</td><td style="color:var(--yellow)" class="mono">${w.r60}</td><td style="color:var(--green)" class="mono">${w.r90}</td><td class="mono b">${w.tot}</td><td><span class="badge pend">${w.p}</span></td><td><span class="badge done">${w.c}</span></td></tr>`).join('');
+  document.getElementById('b-sum').textContent=wArr.length+' weeks';
+}
+
+// ══ SUBMISSION STATUS ══
+function renderSubmission(){
+  const ym=gv('sub-ym'),week=gv('sub-week');
+  let d=[...proc];
+  if(ym)d=d.filter(r=>r['Submission Month']===ym);
+  if(week)d=d.filter(r=>r.Week===week);
+
+  // Use allStoreCodes from Stores sheet as the authoritative list
+  const storeList = allStoreCodes.length>0
+    ? allStoreCodes
+    : Object.entries(codeToStore).map(([code,name])=>({code,name}));
+
+  const submittedCodes=new Set(d.map(r=>r.StoreCode).filter(Boolean));
+
+  const submitted=storeList.filter(s=>submittedCodes.has(s.code));
+  const missing=storeList.filter(s=>!submittedCodes.has(s.code));
+
+  document.getElementById('kpi-sub').innerHTML=
+    KPI('Total Stores','neu',storeList.length,'From Stores sheet')+
+    KPI('Submitted','grn',submitted.length)+
+    KPI('Not Submitted','red',missing.length)+
+    KPI('Items in Period','blu',d.length);
+
+  document.getElementById('b-sub').textContent=storeList.length+' stores';
+
+  document.getElementById('sub-grid').innerHTML=[
+    ...submitted.map(s=>{const items=d.filter(r=>r.StoreCode===s.code).length;return`<div class="sub-card ok"><div class="sub-code">${s.code}</div><div class="sub-name">${s.name||codeToStore[s.code]||'—'}</div><div class="sub-status">✓ Submitted</div><div class="sub-items">${items} item${items!==1?'s':''}</div></div>`;}),
+    ...missing.map(s=>`<div class="sub-card miss"><div class="sub-code">${s.code}</div><div class="sub-name">${s.name||codeToStore[s.code]||'—'}</div><div class="sub-status">✕ Not Submitted</div><div class="sub-items">—</div></div>`)
+  ].join('');
+}
+
+// ══ DATA INSPECTOR ══
+function switchInsp(mode,btn){
+  inspMode=mode;
+  document.querySelectorAll('#page-inspector .btn').forEach(b=>b.classList.remove('btn-solid'));
+  btn.classList.add('btn-solid');
+  const titles={e:'ExpiryData_WebRaw',l:'ActionLedger_Raw',p:'Processed (Joined)'};
+  document.getElementById('insp-title').textContent=titles[mode];
+  inspExportType=mode==='e'?'raw-e':mode==='l'?'raw-l':'proc';
+  renderInspector();
+}
+function renderInspector(){
+  const PROC_COLS=['Store','StoreCode','Article','Barcode','Description','Department','Stock','Required Action','Action Status','Action Taken','Comments','Week','Submission Month','Sub Month Display','ExpiryDate','DaysLeft','Expiry Risk Bucket','Year'];
+  const data=inspMode==='e'?rawE:inspMode==='l'?rawL:proc.map(r=>{const o={};PROC_COLS.forEach(c=>o[c]=r[c]??'');return o;});
+  if(!data||!data.length){document.querySelector('#t-insp thead').innerHTML='';document.querySelector('#t-insp tbody').innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--t3);padding:32px">No data loaded</td></tr>';document.getElementById('insp-badge').textContent='0 rows';return;}
+  const cols=Object.keys(data[0]).filter(c=>!c.startsWith('_'));
+  document.querySelector('#t-insp thead').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  document.querySelector('#t-insp tbody').innerHTML=data.slice(0,300).map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('');
+  document.getElementById('insp-badge').textContent=data.length+' rows';
+}
+
+// ══ ITEM POPUP ══
 function showPop(idx){
   const r=proc.find(p=>p._idx===idx);if(!r)return;
-  const sameArt = proc.filter(p=>p.Article&&p.Article===r.Article);
-  const storeArt= proc.filter(p=>p.Article===r.Article&&p.Store===r.Store);
-  const mAll=allMeasures(sameArt), mSt=allMeasures(storeArt);
-  const bc=bktCls(r['Expiry Risk Bucket']);
-  const sc=r['Action Status']==='Pending Action'?'pend':'comp';
-  const dlNum=r.DaysLeft!==''&&r.DaysLeft!==null&&r.DaysLeft!==undefined?Number(r.DaysLeft):null;
-  const dl=dlNum!==null?dlNum:'—';
+  const dlNum=r.DaysLeft!==''&&r.DaysLeft!==null?Number(r.DaysLeft):null;
   const dlc=dlNum!==null?(dlNum<=7?'var(--red)':dlNum<=30?'var(--orange)':dlNum<=60?'var(--yellow)':'var(--green)'):'var(--t3)';
-  const url=buildURL(r);
-
-  document.getElementById('pop-title').textContent=r.Article||'Article Details';
-  document.getElementById('pop-sub').textContent=(r.Description||'')+(r.Barcode?' · Barcode: '+r.Barcode:'');
-
+  const bc=bktCls(r['Expiry Risk Bucket']),sc=r['Action Status']==='Pending Action'?'pend':'done';
+  const daysSinceSub=r._tsDate?Math.round((TODAY-r._tsDate)/86400000):null;
+  document.getElementById('pop-title').textContent=r.Article||'Item Details';
+  document.getElementById('pop-sub').textContent=(r.Description||'')+(r.Barcode?' · '+r.Barcode:'');
   document.getElementById('pop-body').innerHTML=`
-    <div class="psect">
-      <div class="psect-title">📍 Identity &amp; Location</div>
-      <div class="pgrid">
-        ${PF('Store',r.Store)}${PF('Store Code',r.StoreCode,'mono')}
-        ${PF('Article',r.Article,'mono')}${PF('Barcode',r.Barcode,'mono')}
-        ${PF('Description',r.Description)}${PF('Department',r.Department||'—')}${PF('Week',r.Week,'mono')}
-        ${PF('Stock',r.Stock||'—','mono')}${PF('Submission Month',r['Sub Month Display']||r['Submission Month']||'—')}
-        ${PF('Year',r.Year||'—','mono')}
-      </div>
-    </div>
-    <div class="psect">
-      <div class="psect-title">⏱ Expiry &amp; Risk</div>
-      <div class="pgrid">
-        ${PF('Expiry Date',r.ExpiryDate||'—','mono')}
-        ${PFc('Days Left',typeof dl==='number'?dl+'':dl,dlc,'big')}
-        ${PFb('Risk Bucket',r['Expiry Risk Bucket']||'—',bc)}
-        ${PF('Required Action',r['Required Action']||'—')}
-      </div>
-    </div>
-    <div class="psect">
-      <div class="psect-title">✅ Action &amp; Status</div>
-      <div class="pgrid">
-        ${PFb('Action Status',r['Action Status']||'—',sc)}
-        ${PF('Action Taken',r['Action Taken']||'(not yet taken)')}
-        ${PF('Comments',r.Comments||'—')}
-        ${PF('Target Qty',r.TargetQty||'—','mono')}
-      </div>
-    </div>
-    <div class="psect">
-      <div class="psect-title">📊 Article Measures — All Stores</div>
-      <div class="pgrid">
-        ${PF('Total Records',sameArt.length,'mono')}${PF('Pending Actions',mAll['Pending Action Count'],'mono')}
-        ${PF('Action Taken',mAll['Completed Actions'],'mono')}${PF('≤7 Days',mAll['RTC <7'],'mono')}
-        ${PF('≤30 Days',mAll['Items Expiring ≤ 30 Days'],'mono')}${PF('Action Pending Stock',mAll['Action Pending Stock'],'mono')}
-      </div>
-    </div>
-    <div class="psect">
-      <div class="psect-title">🏪 Article Measures — ${r.Store||'This Store'}</div>
-      <div class="pgrid">
-        ${PF('Records in Store',storeArt.length,'mono')}${PF('Pending in Store',mSt['Pending Action Count'],'mono')}
-        ${PF('Action Taken in Store',mSt['Completed Actions'],'mono')}${PF('≤7 Days in Store',mSt['RTC <7'],'mono')}
-      </div>
-    </div>
-  `;
-  document.getElementById('pop-foot').innerHTML=url
-    ?`<a class="alink" href="${url}" target="_blank" style="padding:8px 16px;font-size:12px">↗ Open Action Form</a>`
-    :'<span style="font-size:11px;color:var(--t3)">No action form URL (Article is blank)</span>';
-
+    <div class="popup-sect"><div class="popup-sect-title">Identity</div>
+    <div class="popup-grid">
+      ${PF('Store',r.Store||'—')}${PF('Store Code',r.StoreCode||'—','mono')}
+      ${PF('Article',r.Article||'—','mono')}${PF('Barcode',r.Barcode||'—','mono')}
+      ${PF('Description',r.Description||'—')}${PF('Department',r.Department||'—')}
+      ${PF('Week',r.Week||'—','mono')}${PF('Submission Month',r['Sub Month Display']||'—')}
+      ${PF('Stock',r.Stock||'—','mono')}${daysSinceSub!==null?PF('Days Since Submitted',daysSinceSub,'mono'):''}
+    </div></div>
+    <div class="popup-sect"><div class="popup-sect-title">Expiry & Risk</div>
+    <div class="popup-grid">
+      ${PF('Expiry Date',r.ExpiryDate||'—','mono')}
+      <div class="pf"><div class="pkey">Days Left</div><div class="pval big" style="color:${dlc}">${dlNum!==null?dlNum:'—'}</div></div>
+      <div class="pf"><div class="pkey">Risk Bucket</div><div class="pval"><span class="badge ${bc}">${r['Expiry Risk Bucket']||'—'}</span></div></div>
+      ${PF('Required Action',r['Required Action']||'—')}
+    </div></div>
+    <div class="popup-sect"><div class="popup-sect-title">Action & Status</div>
+    <div class="popup-grid">
+      <div class="pf"><div class="pkey">Action Status</div><div class="pval"><span class="badge ${sc}">${r['Action Status']||'—'}</span></div></div>
+      ${PF('Action Taken',r['Action Taken']||'(not yet recorded)')}
+      ${PF('Comments',r.Comments||'—')}
+    </div></div>`;
+  document.getElementById('pop-foot').innerHTML=`
+    <button class="btn btn-red" onclick="closePop();confirmAction('RTC Price Change');selectedIndices.add(${r._idx});updateToolbar()">🔴 RTC Price Change</button>
+    <button class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="closePop();confirmAction('Store Transfer');selectedIndices.add(${r._idx});updateToolbar()">🔵 Store Transfer</button>
+    <button class="btn" onclick="closePop();confirmAction('Monitor');selectedIndices.add(${r._idx});updateToolbar()">⬤ Monitor</button>`;
   document.getElementById('popup-overlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
 const PF=(k,v,cls='')=>`<div class="pf"><div class="pkey">${k}</div><div class="pval${cls?' '+cls:''}">${v??'—'}</div></div>`;
-const PFc=(k,v,c,cls='')=>`<div class="pf"><div class="pkey">${k}</div><div class="pval ${cls}" style="color:${c}">${v??'—'}</div></div>`;
-const PFb=(k,v,bc)=>`<div class="pf"><div class="pkey">${k}</div><div class="pval"><span class="badge ${bc}">${v}</span></div></div>`;
-
 function closePop(e){
   if(e&&e.target!==document.getElementById('popup-overlay'))return;
   document.getElementById('popup-overlay').classList.remove('open');
   document.body.style.overflow='';
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('popup-overlay').classList.remove('open');document.body.style.overflow='';}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('popup-overlay').classList.remove('open');document.getElementById('confirm-overlay').classList.remove('open');document.body.style.overflow='';}});
 
-// ════════════════════════════════════════════════════════
-// RENDER — DATA INSPECTOR
-// ════════════════════════════════════════════════════════
-function renderInspector(){
-  buildRaw('t-re',rawE);
-  const ec=Object.keys(rawE[0]||{});
-  document.getElementById('ri-e').innerHTML=`<strong>${rawE.length}</strong> rows · <strong>${ec.length}</strong> cols\nColumns: ${ec.join(' · ')}`;
-
-  buildRaw('t-rl',rawL);
-  const lc=Object.keys(rawL[0]||{});
-  document.getElementById('ri-l').innerHTML=`<strong>${rawL.length}</strong> rows · <strong>${lc.length}</strong> cols\nColumns: ${lc.join(' · ')}`;
-
-  const PC=['Store','StoreCode','Article','Barcode','Description','Department','Stock',
-    'Required Action','Action Status','Action Taken','Comments','TargetQty',
-    'Week','Submission Month','Sub Month Display','ExpiryDate','DaysLeft','Expiry Risk Bucket','Year'];
-  const pd=proc.map(r=>{const o={};PC.forEach(c=>o[c]=r[c]??'');return o;});
-  buildRaw('t-rp',pd);
-  document.getElementById('ri-p').innerHTML=`<strong>${pd.length}</strong> rows · <strong>${PC.length}</strong> cols after JOIN+processing\nJoined fields from Ledger: Action Taken, Comments, TargetQty\nComputed: ExpiryDate, DaysLeft, Expiry Risk Bucket, Required Action, Action Status, Submission Month (normalized)`;
-}
-
-function buildRaw(tid,data){
-  if(!data||!data.length){
-    document.querySelector(`#${tid} thead`).innerHTML='';
-    document.querySelector(`#${tid} tbody`).innerHTML='<tr><td colspan="20" style="text-align:center;color:var(--t3);padding:40px">No data</td></tr>';
-    return;
-  }
-  const cols=Object.keys(data[0]).filter(c=>!c.startsWith('_'));
-  document.querySelector(`#${tid} thead`).innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
-  document.querySelector(`#${tid} tbody`).innerHTML=data.slice(0,300).map(r=>
-    '<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('');
-}
-function inspTab(n,btn){
-  document.querySelectorAll('.itab').forEach(t=>t.classList.remove('active'));
-  document.querySelectorAll('.ipane').forEach(p=>p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('ip-'+n).classList.add('active');
-}
-
-// ════════════════════════════════════════════════════════
-// RENDER — MEASURES PAGE
-// ════════════════════════════════════════════════════════
-function renderMeasures(){
-  const m=allMeasures(proc);
-  const D={
-    'Items Expiring ≤ 7 Days':    'COUNTROWS where Expiry Risk Bucket = "<7 Days"',
-    'Items Expiring ≤ 30 Days':   'COUNTROWS where bucket IN (<7, 7–30)',
-    'Items Expiring ≤ 60 Days':   'COUNTROWS where bucket IN (<7, 7–30, 31–60)',
-    'Near Expiry Stock ≤ 90 Days':'COUNTROWS where bucket IN (<7, 7–30, 31–60, 61–90)',
-    'RTC <7':                     'COUNTROWS(Expiry Risk Bucket = "<7 Days")',
-    'RTC 7-30':                   'COUNTROWS(Expiry Risk Bucket = "7–30 Days")',
-    'RTC 31-60':                  'COUNTROWS(Expiry Risk Bucket = "31–60 Days")',
-    'RTC 61-90':                  'COUNTROWS(Expiry Risk Bucket = "61–90 Days")',
-    'Total RTC Stock':            'COUNT all rows — sum of all stock across all stores',
-    'Total Expiry Items':         'COUNT all rows — same as Total RTC Stock',
-    'Pending Action Count':       'COUNTROWS where Action Status = "Pending Action" (derived: Action Taken is blank)',
-    'Completed Actions':          'COUNTROWS where Action Status = "Action Taken" (derived: Action Taken not blank)',
-    'Action Pending Stock':       '[RTC Price Change items with Pending] − [Ledger TargetQty already handled]',
-    'Store Expiring ≤7 Days':    'Per-store aggregation — see Buyer Overview table',
-    'Store Expiring ≤30 Days':   'Per-store aggregation — see Buyer Overview table',
-    'Store Near Expiry Stock':   'Per-store aggregation — see Buyer Overview table',
-  };
-  document.getElementById('mgrid').innerHTML=Object.entries(D).map(([n,d])=>`
-    <div class="mi"><div class="mn">[${n}]</div><div class="ml">${d}</div>
-    ${typeof m[n]==='number'?`<div class="mv">${m[n].toLocaleString()}</div>`:`<div class="ml" style="color:var(--accent);margin-top:4px">${m[n]}</div>`}
-    </div>`).join('');
-
-  const srcCols=Object.keys(rawE[0]||{});
-  const matched=PBIX_COLS.filter(c=>srcCols.some(s=>s.toLowerCase()===c.toLowerCase()));
-  const missing=PBIX_COLS.filter(c=>!srcCols.some(s=>s.toLowerCase()===c.toLowerCase()));
-  const extra  =srcCols.filter(c=>!PBIX_COLS.some(p=>p.toLowerCase()===c.toLowerCase()));
-  document.getElementById('cmap').innerHTML=`
-    <p style="font-size:11px;color:var(--t3);margin-bottom:12px">✅ Green = matched · 🔵 Blue = extra in source · 🔴 Red = PBIX column not found (may be named differently)</p>
-    <div style="margin-bottom:12px"><strong style="font-size:11px;color:var(--green)">✅ Matched (${matched.length}/${PBIX_COLS.length})</strong><br><br>${matched.map(c=>`<span class="ctag ok">${c}</span>`).join('')}</div>
-    ${missing.length?`<div style="margin-bottom:12px"><strong style="font-size:11px;color:var(--red)">⚠️ Missing in source (${missing.length})</strong><br><br>${missing.map(c=>`<span class="ctag ms">${c}</span>`).join('')}</div>`:''}
-    ${extra.length?`<div><strong style="font-size:11px;color:var(--a2)">ℹ️ Extra source cols (${extra.length})</strong><br><br>${extra.map(c=>`<span class="ctag ex">${c}</span>`).join('')}</div>`:''}`;
-}
-
-// ════════════════════════════════════════════════════════
-// DONUT
-// ════════════════════════════════════════════════════════
-const DC=['#ff4455','#ff8c42','#fbbf24','#10b981','#00d4aa','#0099ff','#b388ff','#f06292'];
-function renderDonut(items){
-  const w=document.getElementById('donut');
-  if(!items.length){w.innerHTML='<p style="color:var(--t3);font-size:12px">No pending items</p>';return;}
-  const tot=items.reduce((s,[,v])=>s+v,0),sz=140,r=52,cx=70,cy=70;
-  let a=-Math.PI/2;const ps=[];
-  items.forEach(([,v],i)=>{
-    const sl=(v/tot)*Math.PI*2,x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a),
-          x2=cx+r*Math.cos(a+sl),y2=cy+r*Math.sin(a+sl);
-    ps.push(`<path d="M${cx},${cy}L${x1},${y1}A${r},${r} 0 ${sl>Math.PI?1:0},1 ${x2},${y2}Z" fill="${DC[i%DC.length]}" opacity=".85"/>`);
-    a+=sl;
-  });
-  w.innerHTML=`<div class="dwrap"><svg width="${sz}" height="${sz}" viewBox="0 0 ${sz} ${sz}">${ps.join('')}<circle cx="${cx}" cy="${cy}" r="26" fill="var(--s1)"/><text x="${cx}" y="${cy+4}" text-anchor="middle" fill="var(--t2)" font-size="10" font-family="DM Mono">${tot}</text></svg>
-    <div class="dleg">${items.map(([l,v],i)=>`<div class="dli"><div class="dlbl"><div class="ld" style="background:${DC[i%DC.length]}"></div><span>${l}</span></div><div class="dval">${v}</div></div>`).join('')}</div></div>`;
-}
-
-// ════════════════════════════════════════════════════════
-// HELPERS
-// ════════════════════════════════════════════════════════
-function K(lbl,cls,ico,val,sub=''){
-  return `<div class="kpi ${cls}"><div class="kico">${ico}</div><div class="klbl">${lbl}</div><div class="kval">${typeof val==='number'?val.toLocaleString():val}</div>${sub?`<div class="ksub">${sub}</div>`:''}</div>`;
-}
-function BR(label,val,max,color){
-  const p=max>0?(val/max*100).toFixed(1):0;
-  return `<div class="brow"><div class="blbl" title="${label}">${label}</div><div class="btrack"><div class="bfill" style="width:${p}%;background:${color}"><span class="bv">${val}</span></div></div></div>`;
-}
-function buildURL(r){
-  if(!r.Article)return '';
-  return ACTION_BASE+'?'+new URLSearchParams({StoreCode:r.StoreCode||'',Store:r.Store||'',
-    Article:r.Article||'',Barcode:r.Barcode||'',SubmissionMonth:r['Submission Month']||'',Week:r.Week||''});
-}
-
-// ════════════════════════════════════════════════════════
-// EXCEL EXPORT
-// ════════════════════════════════════════════════════════
-const EXP=['Store','StoreCode','Article','Barcode','Description','Department','Stock','Required Action',
-  'Action Status','Action Taken','Comments','TargetQty','Week','Submission Month','Sub Month Display',
-  'ExpiryDate','DaysLeft','Expiry Risk Bucket','Year'];
+// ══ EXCEL EXPORT ══
+const EXP_COLS=['Store','StoreCode','Article','Barcode','Description','Department','Stock','Required Action','Action Status','Action Taken','Comments','Week','Submission Month','Sub Month Display','ExpiryDate','DaysLeft','Expiry Risk Bucket','Year'];
 function exportXL(type){
-  let data,fname;
-  const flat=r=>{const o={};EXP.forEach(c=>o[c]=r[c]??'');return o;};
-  if(type==='raw-e'){data=rawE;fname='ExpiryData_WebRaw';}
-  else if(type==='raw-l'){data=rawL;fname='BuyerActionLedgers_Raw';}
-  else if(type==='proc'){data=proc.map(flat);fname='ExpiryData_Processed';}
-  else if(type==='summary'){data=fData('ss').map(flat);fname='StoreSummary_Filtered';}
-  else if(type==='detail'){data=fData('ds').map(flat);fname='StoreDetail_Filtered';}
+  let data,fname;const flat=r=>{const o={};EXP_COLS.forEach(c=>o[c]=r[c]??'');return o;};
+  if(type==='raw-e'){data=rawE;fname='ExpiryData_Raw';}
+  else if(type==='raw-l'){data=rawL;fname='ActionLedger_Raw';}
+  else if(type==='proc'){data=proc.map(flat);fname='Processed';}
+  else if(type==='stores'){data=fData('ss').map(flat);fname='StoreSummary';}
+  else if(type==='actions'){data=fData('ac').map(flat);fname='ActionCenter';}
   else if(type==='artweek'){
-    // Build Article-Stock-by-Week flat export from current summary filter
-    const dAW=fData('ss');
-    const allWksAW=[...new Set(dAW.map(r=>r.Week).filter(Boolean))].sort();
-    const amAW={};
-    dAW.forEach(r=>{
-      const k=(r.StoreCode||'')+'|'+(r['Submission Month']||'')+'|'+(r.Article||'');
-      if(!amAW[k]) amAW[k]={StoreCode:r.StoreCode||'',Store:r.Store||'','Submission Month':r['Sub Month Display']||r['Submission Month']||'',Article:r.Article||'',Description:r.Description||'',Department:r.Department||'',ExpiryDate:r.ExpiryDate||''};
-      const sv=parseFloat(r.Stock); const wk=r.Week||'';
-      if(wk) amAW[k][wk+' Stock']=(amAW[k][wk+' Stock']||0)+(isNaN(sv)?1:sv);
-    });
-    data=Object.values(amAW);
-    // Ensure all week columns present in every row
-    data.forEach(row=>allWksAW.forEach(w=>{if(!(w+' Stock' in row))row[w+' Stock']='';}));
-    fname='ArticleStockByWeek_Filtered';
+    const dAW=fData('ss');const allWks=[...new Set(dAW.map(r=>r.Week).filter(Boolean))].sort();
+    const am={};dAW.forEach(r=>{const k=(r.StoreCode||'')+'|'+(r['Submission Month']||'')+'|'+(r.Article||'');if(!am[k])am[k]={StoreCode:r.StoreCode||'',Store:r.Store||'','Submission Month':r['Sub Month Display']||r['Submission Month']||'',Article:r.Article||'',Description:r.Description||'',ExpiryDate:r.ExpiryDate||''};const sv=parseFloat(r.Stock);const wk=r.Week||'';if(wk)am[k][wk+' Stock']=(am[k][wk+' Stock']||0)+(isNaN(sv)?1:sv);});
+    data=Object.values(am);data.forEach(row=>allWks.forEach(w=>{if(!(w+' Stock' in row))row[w+' Stock']='';}));fname='ArticleStockByWeek';
   }
   if(!data||!data.length){alert('No data to export.');return;}
-  const ws=XLSX.utils.json_to_sheet(data);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Data');
+  const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data');
   XLSX.writeFile(wb,fname+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
-// ════════════════════════════════════════════════════════
-// INIT
-// ════════════════════════════════════════════════════════
 loadAll();
 </script>
 </body>
