@@ -2,645 +2,453 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gala · Expiry Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>StreamVault — Watch Free</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-/* ════════════════════ TOKENS ════════════════════ */
-:root {
-  --bg:       #f5f4f0;
-  --surface:  #ffffff;
-  --surface2: #faf9f6;
-  --border:   #e8e5de;
-  --border2:  #d5d0c5;
-  --text:     #1c1a16;
-  --t2:       #6b6558;
-  --t3:       #b5af9e;
-  --ink:      #1c1a16;
-  --red:      #be2b2b;   --red-l:    #fdf1f1;
-  --orange:   #c26018;   --orange-l: #fef6ee;
-  --yellow:   #9a7a10;   --yellow-l: #fefbee;
-  --green:    #1a6635;   --green-l:  #eef7f2;
-  --blue:     #1a48a0;   --blue-l:   #eef2fc;
-  --mono: 'JetBrains Mono', monospace;
-  --sans: 'Sora', sans-serif;
-  --r: 10px; --rs: 6px;
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-}
+:root{--bg:#080b12;--bg2:#0e1320;--bg3:#151c2e;--accent:#e63946;--accent2:#ff6b35;--gold:#ffd60a;--text:#e8eaf0;--muted:#7a8299;--card:#111827;--border:#1e2740;--green:#06d6a0;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
 
-body {
-  font-family: var(--sans);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 13.5px;
-}
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;gap:10px;padding:0 16px;height:56px;background:rgba(8,11,18,.97);border-bottom:1px solid rgba(255,255,255,.05);backdrop-filter:blur(16px)}
+.logo{font-family:'Bebas Neue';font-size:23px;letter-spacing:3px;color:var(--accent);text-shadow:0 0 18px rgba(230,57,70,.5);cursor:pointer;flex-shrink:0}
+.logo span{color:var(--gold)}
+.nav-links{display:flex;gap:2px}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:12px;font-weight:500;padding:5px 9px;border-radius:6px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.nav-links a:hover,.nav-links a.active{color:var(--text);background:rgba(255,255,255,.07)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.search-bar{display:flex;align-items:center;gap:7px;background:var(--bg3);border:1px solid var(--border);border-radius:50px;padding:6px 12px;width:180px;transition:all .3s}
+.search-bar:focus-within{border-color:var(--accent);width:230px}
+.search-bar input{background:none;border:none;outline:none;color:var(--text);font-size:12px;width:100%;font-family:'DM Sans'}
+.search-bar input::placeholder{color:var(--muted)}
+.lang-sel{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 9px;border-radius:50px;font-size:11px;cursor:pointer;outline:none;font-family:'DM Sans'}
+.apk-btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:6px 14px;border-radius:50px;font-size:11px;font-weight:700;cursor:pointer;box-shadow:0 3px 14px rgba(230,57,70,.35);transition:all .2s;white-space:nowrap}
+.apk-btn:hover{transform:translateY(-2px);box-shadow:0 7px 20px rgba(230,57,70,.55)}
 
-/* ════════════════════ LAYOUT ════════════════════ */
-.layout {
-  display: flex;
-  width: 100%;
-  min-height: 100vh;
-}
+/* Mobile search toggle */
+.mob-search-ico{display:none;width:34px;height:34px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.mob-search-bar{display:none;position:fixed;top:56px;left:0;right:0;z-index:199;background:rgba(8,11,18,.98);padding:10px 14px;border-bottom:1px solid var(--border)}
+.mob-search-bar input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:'DM Sans';font-size:13px;outline:none}
+.mob-search-bar input:focus{border-color:var(--accent)}
+.mob-search-bar.open{display:block}
 
-/* ════════════════════ SIDEBAR ════════════════════ */
-.sidebar {
-  width: 196px;
-  min-width: 196px;
-  background: var(--ink);
-  display: flex;
-  flex-direction: column;
-  z-index: 100;
-  height: 100vh;
-  position: sticky;
-  top: 0;
-  flex-shrink: 0;
-}
-.brand {
-  padding: 20px 18px 16px;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.brand-logo {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
-}
-.brand-mark {
-  width: 28px; height: 28px; background: var(--green);
-  border-radius: 6px; display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.brand-name { font-size: 13px; font-weight: 700; color: #fff; }
-.brand-sub { font-size: 9.5px; color: rgba(255,255,255,.35); letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px; }
+.notice{background:rgba(255,214,10,.06);border-bottom:1px solid rgba(255,214,10,.14);padding:7px 16px;font-size:10px;color:rgba(255,214,10,.65);text-align:center;margin-top:56px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.api-status{display:inline-flex;align-items:center;gap:5px;background:rgba(6,214,160,.08);border:1px solid rgba(6,214,160,.2);color:var(--green);padding:3px 10px;border-radius:50px;font-size:10px;font-weight:600}
+.api-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-.nav { padding: 8px 0; flex: 1; }
-.nav-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 18px; cursor: pointer;
-  background: none; border: none; border-left: 2px solid transparent;
-  width: 100%; text-align: left; font-family: var(--sans);
-  font-size: 12px; font-weight: 500; color: rgba(255,255,255,.45);
-  transition: all .15s; white-space: nowrap;
-}
-.nav-item:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.05); }
-.nav-item.active { color: #fff; background: rgba(255,255,255,.08); border-left-color: var(--green); }
-.nav-ico { font-size: 12px; width: 14px; text-align: center; flex-shrink: 0; opacity: .8; }
-.nav-sep { height: 1px; background: rgba(255,255,255,.07); margin: 6px 18px; }
+/* ── HERO ── */
+.hero{position:relative;height:86vh;display:flex;align-items:flex-end;padding:0 56px 76px;overflow:hidden}
+.hero-bg{position:absolute;inset:0;background:url('https://image.tmdb.org/t/p/original/xOMo8BRK7PfcJv9JCnx7s5hj0PX.jpg') center/cover}
+.hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,rgba(8,11,18,.97) 32%,rgba(8,11,18,.15) 100%),linear-gradient(to top,rgba(8,11,18,1) 0%,rgba(8,11,18,.25) 55%,transparent 100%)}
+.hero-content{position:relative;z-index:1;max-width:550px}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(230,57,70,.14);border:1px solid rgba(230,57,70,.28);color:var(--accent);padding:3px 11px;border-radius:50px;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:13px;text-transform:uppercase}
+.hero-title{font-family:'Bebas Neue';font-size:68px;line-height:.92;letter-spacing:2px;margin-bottom:13px}
+.hero-title span{color:var(--accent)}
+.hero-meta{display:flex;align-items:center;gap:12px;margin-bottom:13px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.rating{color:var(--gold);font-weight:700}
+.qual{background:var(--accent);color:#fff;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700}
+.ltag{background:var(--bg3);border:1px solid var(--border);padding:2px 6px;border-radius:4px;font-size:10px;color:var(--muted)}
+.hero-desc{font-size:13px;line-height:1.65;color:var(--muted);margin-bottom:22px}
+.hero-btns{display:flex;gap:9px;flex-wrap:wrap}
+.btn-play{display:flex;align-items:center;gap:7px;background:var(--accent);color:#fff;border:none;padding:12px 24px;border-radius:50px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(230,57,70,.5);transition:all .2s}
+.btn-play:hover{background:#ff4757;transform:translateY(-2px)}
+.btn-more{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.09);backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,.18);padding:12px 24px;border-radius:50px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-more:hover{background:rgba(255,255,255,.16)}
+.ptri{width:13px;height:13px;background:#fff;clip-path:polygon(0 0,100% 50%,0 100%)}
 
-.sidebar-foot {
-  padding: 12px 18px; border-top: 1px solid rgba(255,255,255,.07);
-  font-size: 9.5px; color: rgba(255,255,255,.3); font-family: var(--mono);
-}
-.sidebar-foot strong { color: rgba(255,255,255,.55); display: block; margin-top: 2px; font-size: 10px; }
+/* ── TABS ── */
+.tabs{display:flex;gap:7px;padding:26px 16px 0;flex-wrap:wrap;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:7px 16px;border-radius:50px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--bg3);transition:all .2s;white-space:nowrap;flex-shrink:0}
+.tab:hover,.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+section{padding:28px 16px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.sec-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px}
+.sec-title span{color:var(--accent)}
+.see-all{color:var(--accent);font-size:11px;font-weight:500;cursor:pointer;transition:opacity .2s}
+.see-all:hover{opacity:.7}
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,#1e2740 50%,var(--bg3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius)}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-card{height:240px;min-width:130px;border-radius:var(--radius);flex-shrink:0}
+.hrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+.hrow::-webkit-scrollbar{height:3px}
 
-/* ════════════════════ MAIN ════════════════════ */
-.main {
-  flex: 1;
-  width: calc(100vw - 196px);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow-x: hidden;
-}
+/* ── CARDS ── */
+.card{min-width:130px;background:var(--card);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .25s,box-shadow .25s;border:1px solid var(--border);position:relative;flex-shrink:0}
+.card:hover{transform:translateY(-6px) scale(1.02);box-shadow:0 14px 32px rgba(0,0,0,.65)}
+.card-thumb{position:relative;aspect-ratio:2/3;overflow:hidden;background:var(--bg3)}
+.card-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+.card:hover .card-thumb img{transform:scale(1.07)}
+.cb{position:absolute;top:6px;left:6px;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;text-transform:uppercase;z-index:1}
+.cb-hd{background:var(--accent);color:#fff}.cb-4k{background:var(--gold);color:#000}.cb-s{background:#7c3aed;color:#fff}.cb-new{background:var(--green);color:#000}
+.ctag{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);font-size:9px;font-weight:600;padding:2px 5px;border-radius:4px;color:var(--gold);z-index:1}
+.card-ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88) 0%,transparent 55%);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center}
+.card:hover .card-ov{opacity:1}
+.pcircle{width:40px;height:40px;border-radius:50%;background:rgba(230,57,70,.9);display:flex;align-items:center;justify-content:center;transform:scale(.8);transition:transform .3s}
+.card:hover .pcircle{transform:scale(1)}
+.pico{width:11px;height:11px;background:#fff;clip-path:polygon(0 0,100% 50%,0 100%);margin-left:3px}
+.card-info{padding:7px 8px}
+.card-ttl{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
+.card-sub{font-size:10px;color:var(--muted);display:flex;gap:5px;align-items:center}
+.star{color:var(--gold)}.dot{width:3px;height:3px;background:var(--muted);border-radius:50%}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.lcard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:5px}
+.lcard:hover{border-color:var(--accent);background:rgba(230,57,70,.07);transform:translateY(-3px)}
+.lico{font-size:22px}.lname{font-size:11px;font-weight:600}.lcnt{font-size:10px;color:var(--muted)}
 
-.topbar {
-  position: sticky; top: 0; z-index: 50;
-  background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: 11px 22px; display: flex; align-items: center; gap: 12px;
-}
-.topbar-title { font-size: 14px; font-weight: 700; flex: 1; }
-.topbar-sub { font-size: 10px; color: var(--t3); margin-top: 1px; }
+/* ── APK PROMO ── */
+.apk-promo{margin:0 16px 28px;background:linear-gradient(135deg,#0d1220,#161d30);border:1px solid var(--border);border-radius:14px;padding:28px 20px;display:flex;align-items:center;gap:28px;position:relative;overflow:hidden}
+.apk-promo::before{content:'';position:absolute;right:-40px;top:-40px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(230,57,70,.11) 0%,transparent 70%)}
+.apk-promo-txt h2{font-family:'Bebas Neue';font-size:28px;letter-spacing:2px;margin-bottom:6px}
+.apk-promo-txt h2 span{color:var(--accent)}
+.apk-promo-txt p{color:var(--muted);font-size:12px;max-width:400px;line-height:1.6;margin-bottom:14px}
+.apk-feats{display:flex;flex-direction:column;gap:4px;margin-bottom:16px}
+.apk-feat{font-size:11px;display:flex;align-items:center;gap:6px}
+.apk-feat::before{content:'✓';color:var(--green);font-weight:700}
+.apk-dl{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;padding:11px 22px;border-radius:50px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(230,57,70,.4);transition:all .2s}
+.apk-dl:hover{transform:translateY(-2px);box-shadow:0 7px 24px rgba(230,57,70,.6)}
+.apk-ghost{font-size:75px;opacity:.07;position:absolute;right:24px;top:50%;transform:translateY(-50%)}
 
-/* search bar */
-.search-wrap {
-  position: relative; display: flex; align-items: center;
-}
-.search-wrap input {
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: var(--rs); padding: 6px 10px 6px 28px;
-  font-family: var(--sans); font-size: 12px; color: var(--text);
-  width: 180px; outline: none; transition: border-color .15s;
-}
-.search-wrap input:focus { border-color: var(--green); }
-.search-wrap input::placeholder { color: var(--t3); }
-.search-ico { position: absolute; left: 9px; font-size: 11px; color: var(--t3); pointer-events: none; }
+/* ── PLAYER MODAL ── */
+.player-modal{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.96);backdrop-filter:blur(14px);display:none;flex-direction:column;align-items:center;justify-content:flex-start;padding:52px 12px 12px;overflow-y:auto}
+.player-modal.open{display:flex}
+.player-close{position:fixed;top:12px;right:14px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;transition:all .2s}
+.player-close:hover{background:var(--accent)}
+.player-wrap{width:100%;max-width:940px}
+.player-title-bar{display:flex;align-items:center;justify-content:space-between;padding:0 0 8px;flex-wrap:wrap;gap:8px}
+.ptitle{font-family:'Bebas Neue';font-size:18px;letter-spacing:1px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.pservers{display:flex;gap:5px;flex-wrap:wrap}
+.psrv{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.psrv:hover,.psrv.active{border-color:var(--accent);color:var(--accent);background:rgba(230,57,70,.1)}
+.iframe-box{width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:#000;position:relative}
+.iframe-box iframe{width:100%;height:100%;border:none}
+.iframe-loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:var(--muted);font-size:13px;flex-direction:column;gap:10px}
+.spin{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ════════════════════ BUTTONS ════════════════════ */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 12px; border-radius: var(--rs);
-  border: 1px solid var(--border2); background: var(--surface);
-  color: var(--t2); font-family: var(--sans); font-size: 12px;
-  font-weight: 500; cursor: pointer; transition: all .15s; white-space: nowrap;
-}
-.btn:hover { border-color: var(--green); color: var(--green); }
-.btn-solid { background: var(--ink); color: #fff; border-color: var(--ink); }
-.btn-solid:hover { background: #333; border-color: #333; color: #fff; }
-.btn-green { background: var(--green); color: #fff; border-color: var(--green); }
-.btn-green:hover { background: #155a2c; border-color: #155a2c; color: #fff; }
-.btn-red { background: var(--red); color: #fff; border-color: var(--red); }
-.btn.loading .spin { animation: spin .7s linear infinite; display: inline-block; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Fullscreen btn */
+.fs-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.fs-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-/* ════════════════════ STATUS BAR ════════════════════ */
-.status-bar { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 22px 0; }
-.status-chip {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 12px; border-radius: var(--rs);
-  background: var(--surface); border: 1px solid var(--border);
-  font-size: 11px; flex: 1; min-width: 180px;
-}
-.sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.sdot.ok { background: var(--green); }
-.sdot.err { background: var(--red); }
-.sdot.loading { background: var(--yellow); animation: blink .8s ease infinite; }
-@keyframes blink { 0%,100%{opacity:.3} 50%{opacity:1} }
+/* SPlayer mobile btn */
+.splayer-btn{display:none;background:linear-gradient(135deg,#06d6a0,#0aa87d);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;align-items:center;gap:4px}
 
-/* ════════════════════ CONTENT ════════════════════ */
-.content {
-  width: 100%;
-  max-width: 100%;
-  padding: 14px 22px;
-  flex: 1;
-}
-.page { display: none; }
-.page.active { display: block; animation: fadeUp .2s ease; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+/* ── EP PICKER ── */
+.ep-wrap{width:100%;max-width:940px;margin-top:10px}
+.ep-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;margin-top:10px}
+.season-row{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+.s-btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;background:var(--bg3);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .2s}
+.s-btn:hover,.s-btn.active{border-color:var(--gold);color:var(--gold)}
+.ep-grid{display:flex;gap:5px;flex-wrap:wrap;max-height:180px;overflow-y:auto;padding-bottom:4px}
+.ep-grid::-webkit-scrollbar{width:3px}
+.ep-btn{padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;background:var(--bg3);border:1px solid var(--border);color:var(--text);cursor:pointer;transition:all .2s}
+.ep-btn:hover,.ep-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
 
-/* ════════════════════ OVERDUE BANNER ════════════════════ */
-.overdue-banner {
-  display: none; align-items: flex-start; gap: 10px;
-  background: var(--red-l); border: 1px solid #f0c8c8;
-  border-left: 3px solid var(--red);
-  border-radius: var(--rs); padding: 10px 14px;
-  margin-bottom: 12px; font-size: 12px; color: var(--red);
-}
-.overdue-banner strong { font-weight: 700; }
-.overdue-banner a { color: var(--red); font-weight: 600; text-decoration: underline; cursor: pointer; }
+/* ── INFO MODAL ── */
+.info-modal{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+.info-modal.open{display:flex}
+.info-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;animation:sUp .3s ease}
+@keyframes sUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.info-top{position:relative}
+.info-bg{width:100%;height:170px;object-fit:cover;border-radius:14px 14px 0 0;display:block}
+.info-bg-ov{position:absolute;inset:0;border-radius:14px 14px 0 0;background:linear-gradient(to top,var(--bg2) 10%,transparent 75%)}
+.info-close{position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.info-body{padding:0 18px 18px}
+.info-title{font-family:'Bebas Neue';font-size:32px;letter-spacing:2px;margin-bottom:7px}
+.info-meta{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px;align-items:center;font-size:12px}
+.info-desc{font-size:13px;color:var(--muted);line-height:1.68;margin-bottom:16px}
+.info-btns{display:flex;gap:9px;flex-wrap:wrap}
+.srv-lbl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:14px 0 7px}
+.srv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
+.srv-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;display:flex;flex-direction:column;gap:2px}
+.srv-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(230,57,70,.07)}
+.srv-sub{font-size:10px;color:var(--muted);font-weight:400}
+footer{background:var(--bg2);border-top:1px solid var(--border);padding:24px 16px;text-align:center;color:var(--muted);font-size:11px}
+.ftlinks{display:flex;gap:12px;justify-content:center;margin-bottom:10px;flex-wrap:wrap}
+.ftlinks a{color:var(--muted);text-decoration:none;transition:color .2s;cursor:pointer}
+.ftlinks a:hover{color:var(--text)}
+.toast{position:fixed;bottom:16px;right:16px;z-index:600;background:var(--bg2);border:1px solid var(--green);color:var(--text);padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;display:none;animation:sUp .3s ease;box-shadow:0 5px 20px rgba(0,0,0,.5);max-width:calc(100vw - 32px)}
+.toast.show{display:block}
+.empty{grid-column:1/-1;text-align:center;padding:48px 0;color:var(--muted);font-size:13px}
+.load-more-btn{display:block;margin:20px auto 0;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 28px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.load-more-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-/* ════════════════════ KPI ════════════════════ */
-.kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
-.kpi {
-  background: var(--surface); border: 1px solid var(--border);
-  border-top: 2px solid transparent;
-  border-radius: var(--rs); padding: 12px 13px; position: relative;
-}
-.kpi-label { font-size: 9.5px; font-weight: 600; color: var(--t3); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 6px; line-height: 1.4; }
-.kpi-value { font-family: var(--mono); font-size: 24px; font-weight: 600; line-height: 1; }
-.kpi-sub { font-size: 9.5px; color: var(--t3); margin-top: 3px; }
-.kpi.red  { border-top-color: var(--red); }   .kpi.red  .kpi-value { color: var(--red); }
-.kpi.ora  { border-top-color: var(--orange); } .kpi.ora  .kpi-value { color: var(--orange); }
-.kpi.yel  { border-top-color: var(--yellow); } .kpi.yel  .kpi-value { color: var(--yellow); }
-.kpi.grn  { border-top-color: var(--green); }  .kpi.grn  .kpi-value { color: var(--green); }
-.kpi.blu  { border-top-color: var(--blue); }   .kpi.blu  .kpi-value { color: var(--blue); }
-.kpi.neu  { border-top-color: var(--t3); }
+/* ── MOBILE ── */
+@media(max-width:640px){
+  nav{padding:0 10px;gap:6px;height:52px}
+  .logo{font-size:20px;letter-spacing:2px}
+  .nav-links{gap:0}
+  .nav-links a{font-size:11px;padding:5px 7px}
+  .search-bar{display:none}
+  .lang-sel{display:none}
+  .apk-btn{display:none}
+  .mob-search-ico{display:flex}
 
-/* ════════════════════ PANELS ════════════════════ */
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--rs); overflow: hidden; margin-bottom: 10px; }
-.panel-head { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.panel-title { font-size: 12px; font-weight: 600; }
-.panel-title-sub { font-size: 10px; color: var(--t3); margin-top: 1px; }
-.panel-badge { font-family: var(--mono); font-size: 9.5px; color: var(--t2); background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 2px 8px; }
-.panel-body { padding: 12px 14px; }
+  .notice{margin-top:52px;font-size:9px;padding:6px 10px}
 
-/* ════════════════════ FILTER BAR ════════════════════ */
-.filter-bar {
-  display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--rs); padding: 10px 14px; margin-bottom: 10px;
-}
-.fg { display: flex; flex-direction: column; gap: 3px; }
-.fl { font-size: 9.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); }
-.fs {
-  background: var(--bg); border: 1px solid var(--border2); color: var(--text);
-  border-radius: var(--rs); padding: 5px 24px 5px 8px;
-  font-family: var(--sans); font-size: 12px; cursor: pointer; min-width: 100px;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23b5af9e'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 7px center; transition: border-color .15s;
-}
-.fs:focus { outline: none; border-color: var(--green); }
-.store-disp { padding: 5px 9px; border-radius: var(--rs); background: var(--bg); border: 1px solid var(--border); font-size: 12px; color: var(--t2); min-width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rbtn { padding: 5px 10px; border-radius: var(--rs); background: none; border: 1px solid var(--border2); color: var(--t3); font-size: 11px; cursor: pointer; font-family: var(--sans); transition: all .15s; align-self: flex-end; }
-.rbtn:hover { border-color: var(--red); color: var(--red); }
+  .hero{padding:0 14px 52px;height:70vh}
+  .hero-title{font-size:38px}
+  .hero-desc{font-size:12px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .hero-btns .btn-play,.hero-btns .btn-more{padding:10px 16px;font-size:12px}
 
-/* ════════════════════ BAR CHART ════════════════════ */
-.bar-chart { display: flex; flex-direction: column; gap: 5px; }
-.bar-row { display: flex; align-items: center; gap: 8px; }
-.bar-lbl { font-size: 10.5px; color: var(--t2); width: 80px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
-.bar-track { flex: 1; background: var(--bg); border-radius: 3px; height: 13px; overflow: hidden; border: 1px solid var(--border); }
-.bar-fill { height: 100%; border-radius: 3px; display: flex; align-items: center; justify-content: flex-end; padding-right: 5px; transition: width .6s cubic-bezier(.4,0,.2,1); }
-.bar-val { font-size: 9.5px; font-family: var(--mono); color: #fff; }
+  .tabs{padding:14px 10px 0;gap:5px}
+  .tab{padding:6px 12px;font-size:11px}
 
-/* ════════════════════ TABLE ════════════════════ */
-.tw { overflow-x: auto; }
-.ts { max-height: 400px; overflow-y: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
-thead th {
-  background: var(--surface2); color: var(--t2);
-  font-size: 9.5px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
-  padding: 8px 10px; text-align: left; position: sticky; top: 0;
-  border-bottom: 1px solid var(--border2); white-space: nowrap; z-index: 1;
-}
-/* checkbox column */
-thead th:first-child, tbody td:first-child { width: 36px; text-align: center; }
-tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
-tbody tr:hover { background: var(--surface2); }
-tbody tr.selected { background: #eef4ff; }
-tbody tr.overdue td { background: #fff8f8 !important; }
-tbody tr.overdue:hover td { background: #fff0f0 !important; }
-tbody td { padding: 7px 10px; color: var(--t2); vertical-align: middle; }
-td.b { color: var(--text); font-weight: 500; }
-.mono { font-family: var(--mono); }
+  section{padding:20px 10px}
+  .sec-title{font-size:17px}
+  .skel-card{height:200px;min-width:110px}
+  .card{min-width:110px}
+  .mgrid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+  .lgrid{grid-template-columns:repeat(3,1fr);gap:7px}
+  .lcard{padding:12px 8px}
+  .lico{font-size:18px}
+  .lname{font-size:10px}
+  .lcnt{font-size:9px}
 
-/* days bar inline */
-.days-bar { display: flex; align-items: center; gap: 5px; }
-.days-bar-track { width: 40px; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; flex-shrink: 0; }
-.days-bar-fill { height: 100%; border-radius: 99px; }
+  .apk-promo{margin:0 10px 22px;flex-direction:column;gap:12px;padding:18px 14px}
+  .apk-ghost{display:none}
+  .apk-promo-txt h2{font-size:22px}
+  .apk-promo-txt p{font-size:11px}
 
-/* ════════════════════ BADGES ════════════════════ */
-.badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 20px; font-size: 9.5px; font-weight: 600; white-space: nowrap; border: 1px solid; }
-.badge.crit   { background: var(--red-l);    color: var(--red);    border-color: #f0c8c8; }
-.badge.high   { background: var(--orange-l); color: var(--orange); border-color: #f0d8b8; }
-.badge.med    { background: var(--yellow-l); color: var(--yellow); border-color: #f0e8b0; }
-.badge.low    { background: var(--green-l);  color: var(--green);  border-color: #b8dfc5; }
-.badge.pend   { background: var(--orange-l); color: var(--orange); border-color: #f0d8b8; }
-.badge.done   { background: var(--green-l);  color: var(--green);  border-color: #b8dfc5; }
-.badge.na     { background: var(--bg);       color: var(--t3);     border-color: var(--border); }
-.overdue-tag  { display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border-radius: 20px; font-size: 9px; font-weight: 700; background: var(--red-l); color: var(--red); border: 1px solid #f0c8c8; }
+  footer{padding:18px 10px}
 
-/* ════════════════════ WEEK COMPARE ════════════════════ */
-.wk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 6px; }
-.wk-cell { padding: 10px 8px; border-radius: var(--rs); background: var(--bg); border: 1px solid var(--border); text-align: center; }
-.wk-cell-lbl { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
-.wk-cell-val { font-family: var(--mono); font-size: 20px; font-weight: 600; color: var(--text); line-height: 1; }
-.wk-cell-trend { font-size: 9px; color: var(--t3); margin-top: 3px; }
-.wk-cell.up { border-color: #f0c8c8; background: var(--red-l); } .wk-cell.up .wk-cell-val { color: var(--red); }
-.wk-cell.dn { border-color: #b8dfc5; background: var(--green-l); } .wk-cell.dn .wk-cell-val { color: var(--green); }
+  /* Player mobile */
+  .player-modal{padding:46px 8px 8px}
+  .ptitle{font-size:14px}
+  .psrv{font-size:10px;padding:3px 8px}
+  .fs-btn{font-size:10px;padding:3px 8px}
+  .splayer-btn{display:inline-flex}
+  .ep-grid{max-height:130px}
+  .ep-btn{padding:5px 9px;font-size:10px}
+  .s-btn{padding:4px 9px;font-size:10px}
+  .ep-lbl{font-size:9px}
 
-/* ════════════════════ SUBMISSION GRID ════════════════════ */
-.sub-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 7px; }
-.sub-card { padding: 10px 11px; border-radius: var(--rs); background: var(--bg); border: 1px solid var(--border); }
-.sub-card.ok { background: var(--green-l); border-color: #b8dfc5; }
-.sub-card.miss { background: var(--red-l); border-color: #f0c8c8; }
-.sub-code { font-family: var(--mono); font-size: 10.5px; font-weight: 600; color: var(--text); }
-.sub-name { font-size: 10px; color: var(--t2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sub-status { font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; margin-top: 5px; }
-.sub-card.ok .sub-status { color: var(--green); }
-.sub-card.miss .sub-status { color: var(--red); }
-.sub-items { font-family: var(--mono); font-size: 10px; color: var(--t2); margin-top: 1px; }
-
-/* ════════════════════ BULK ACTION TOOLBAR ════════════════════ */
-.action-toolbar {
-  display: none; position: fixed; bottom: 20px; left: 50%;
-  transform: translateX(-50%);
-  background: var(--ink); border-radius: 12px;
-  padding: 10px 16px; box-shadow: 0 8px 40px rgba(0,0,0,.35);
-  align-items: center; gap: 12px; z-index: 200;
-  animation: slideUp .25s cubic-bezier(.22,1,.36,1);
-  white-space: nowrap;
-}
-.action-toolbar.visible { display: flex; }
-@keyframes slideUp { from{transform:translateX(-50%) translateY(20px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
-.action-toolbar-count { font-size: 12px; font-weight: 600; color: rgba(255,255,255,.6); font-family: var(--mono); }
-.action-toolbar-count strong { color: #fff; }
-.action-toolbar-sep { width: 1px; height: 20px; background: rgba(255,255,255,.15); }
-.act-btn { padding: 7px 13px; border-radius: 7px; border: none; cursor: pointer; font-family: var(--sans); font-size: 12px; font-weight: 600; transition: all .15s; }
-.act-btn.rtc { background: var(--red); color: #fff; }
-.act-btn.rtc:hover { background: #a82424; }
-.act-btn.trans { background: var(--blue); color: #fff; }
-.act-btn.trans:hover { background: #163d8a; }
-.act-btn.mon { background: rgba(255,255,255,.12); color: rgba(255,255,255,.85); }
-.act-btn.mon:hover { background: rgba(255,255,255,.22); }
-.act-btn.cancel { background: none; color: rgba(255,255,255,.4); font-size: 16px; line-height: 1; padding: 4px 6px; }
-.act-btn.cancel:hover { color: #fff; }
-
-/* ════════════════════ POPUP ════════════════════ */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 500; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(4px); }
-.overlay.open { display: flex; }
-.popup { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15); animation: popIn .2s ease; }
-@keyframes popIn { from{opacity:0;transform:scale(.97)} to{opacity:1;transform:scale(1)} }
-.popup-head { padding: 15px 20px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; position: sticky; top: 0; background: var(--surface); z-index: 1; }
-.popup-title { font-size: 14px; font-weight: 700; }
-.popup-sub { font-size: 10.5px; color: var(--t3); margin-top: 3px; }
-.popup-close { background: none; border: none; color: var(--t2); font-size: 18px; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: .15s; line-height: 1; flex-shrink: 0; }
-.popup-close:hover { background: var(--bg); color: var(--text); }
-.popup-body { padding: 16px 20px; }
-.popup-sect { margin-bottom: 14px; }
-.popup-sect-title { font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--t3); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
-.popup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-.pf { padding: 7px 0; border-bottom: 1px solid var(--border); }
-.pf:nth-child(odd) { padding-right: 14px; border-right: 1px solid var(--border); }
-.pf:nth-child(even) { padding-left: 14px; }
-.pf:last-child, .pf:nth-last-child(2):nth-child(odd) { border-bottom: none; }
-.pkey { font-size: 9.5px; color: var(--t3); font-weight: 600; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 3px; }
-.pval { font-size: 13px; color: var(--text); font-weight: 500; word-break: break-word; }
-.pval.mono { font-family: var(--mono); font-size: 12px; }
-.pval.big { font-size: 24px; font-family: var(--mono); font-weight: 700; }
-.popup-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-
-/* ════════════════════ ACTION CONFIRM POPUP ════════════════════ */
-.action-confirm { background: var(--surface); border-radius: 14px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.2); animation: popIn .2s ease; padding: 24px; }
-.action-confirm h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
-.action-confirm p { font-size: 12px; color: var(--t2); margin-bottom: 18px; line-height: 1.6; }
-.action-confirm-items { background: var(--bg); border-radius: var(--rs); padding: 10px 12px; margin-bottom: 16px; max-height: 160px; overflow-y: auto; }
-.action-confirm-item { font-size: 11px; font-family: var(--mono); color: var(--t2); padding: 2px 0; }
-.confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
-
-/* ════════════════════ INSPECTOR ════════════════════ */
-.insp-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
-
-/* ════════════════════ TOAST ════════════════════ */
-.toast {
-  position: fixed; bottom: 80px; left: 50%;
-  transform: translateX(-50%) translateY(30px);
-  background: var(--ink); color: #fff; font-family: var(--sans);
-  font-size: 12px; font-weight: 600; padding: 10px 18px;
-  border-radius: 50px; z-index: 99999; opacity: 0;
-  white-space: nowrap; pointer-events: none;
-  transition: all .25s cubic-bezier(.22,1,.36,1);
-  box-shadow: 0 4px 20px rgba(0,0,0,.25);
-}
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.success { background: var(--green); }
-.toast.error { background: var(--red); }
-
-
-.panel,
-.row2,
-.kpi-grid,
-.filter-bar,
-.tw,
-.page {
-  width: 100%;
-  max-width: 100%;
+  /* Info modal mobile */
+  .info-modal{padding:10px}
+  .info-bg{height:130px}
+  .info-title{font-size:26px}
+  .info-body{padding:0 14px 14px}
+  .srv-grid{grid-template-columns:repeat(2,1fr)}
 }
 
-table {
-  width: 100%;
-  min-width: 1400px;
-}
-
-.tw {
-  overflow-x: auto;
-}
-
-@media(max-width: 860px){
-
-  .layout {
-    flex-direction: column;
-  }
-
-  .sidebar {
-    display: none;
-  }
-
-  .main {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .row2 {
-    grid-template-columns: 1fr;
-  }
-
-  .popup-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pf:nth-child(odd) {
-    border-right: none;
-    padding-right: 0;
-  }
-
-  .pf:nth-child(even) {
-    padding-left: 0;
-  }
-
-  table {
-    min-width: 1000px;
-  }
-}
+/* Fullscreen player mode */
+.player-modal.fullscreen-mode{padding:0}
+.player-modal.fullscreen-mode .player-close{top:8px;right:8px}
+.player-modal.fullscreen-mode .player-wrap{max-width:100%;height:100vh;display:flex;flex-direction:column;justify-content:center}
+.player-modal.fullscreen-mode .iframe-box{border-radius:0;border:none;height:100vh;aspect-ratio:unset}
+.player-modal.fullscreen-mode .player-title-bar,.player-modal.fullscreen-mode .ep-wrap{display:none}
 </style>
 </head>
 <body>
 
-<!-- LAYOUT -->
-<div class="layout">
-
-<!-- ══ SIDEBAR ══ -->
-<nav class="sidebar">
-  <div class="brand">
-    <div class="brand-logo">
-      <div class="brand-mark">G</div>
-      <div class="brand-name">Gala Markets</div>
+<nav>
+  <div class="logo" onclick="goHome()">Stream<span>Vault</span></div>
+  <div class="nav-links">
+    <a class="active" id="navHome" onclick="showSection('home',this)">Home</a>
+    <a id="navMovies" onclick="showSection('movies',this)">Movies</a>
+    <a id="navTV" onclick="showSection('tv',this)">TV</a>
+    <a id="navNew" onclick="showSection('new',this)">New</a>
+  </div>
+  <div class="nav-right">
+    <div class="search-bar">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#7a8299" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search movies, series..." id="searchInput" oninput="doSearch(this.value)">
     </div>
-    <div class="brand-sub">Expiry Dashboard</div>
+    <div class="mob-search-ico" onclick="toggleMobSearch()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <select class="lang-sel" id="langSel"><option value="en">🌍 EN</option><option value="hi">HI</option><option value="ta">TA</option><option value="te">TE</option><option value="ml">ML</option><option value="ko">KO</option><option value="ja">JA</option><option value="es">ES</option><option value="fr">FR</option><option value="ar">AR</option><option value="zh">ZH</option><option value="pt">PT</option><option value="de">DE</option><option value="ru">RU</option></select>
+    <button class="apk-btn" onclick="openSPlayer()">📱 SPlayer</button>
   </div>
-  <div class="nav">
-    <button class="nav-item active" onclick="go('overview')" id="n-overview"><span class="nav-ico">◉</span>Overview</button>
-    <button class="nav-item" onclick="go('actions')" id="n-actions"><span class="nav-ico">⚡</span>Action Center</button>
-    <button class="nav-item" onclick="go('stores')" id="n-stores"><span class="nav-ico">▤</span>Store Summary</button>
-    <div class="nav-sep"></div>
-    <button class="nav-item" onclick="go('submission')" id="n-submission"><span class="nav-ico">◈</span>Submission Status</button>
-    <button class="nav-item" onclick="go('inspector')" id="n-inspector"><span class="nav-ico">⌥</span>Data Inspector</button>
-  </div>
-  <div class="sidebar-foot">Last refresh<strong id="ts">—</strong></div>
 </nav>
 
-<!-- ══ MAIN ══ -->
-<div class="main">
-  <div class="topbar">
-    <div style="flex:1">
-      <div class="topbar-title" id="ptitle">Overview</div>
-      <div class="topbar-sub">Gala Supermarket · Expiry Management System</div>
-    </div>
-    <div class="search-wrap">
-      <span class="search-ico">⌕</span>
-      <input type="text" id="globalSearch" placeholder="Search article, desc…" oninput="onSearch()">
-    </div>
-    <button class="btn loading" onclick="loadAll()" id="rfbtn"><span class="spin">↻</span> Refresh</button>
-  </div>
-
-  <!-- STATUS -->
-  <div class="status-bar">
-    <div class="status-chip"><div class="sdot loading" id="dot-e"></div><span id="inf-e" style="font-size:11px;color:var(--t2)">Loading ExpiryData…</span></div>
-    <div class="status-chip"><div class="sdot loading" id="dot-l"></div><span id="inf-l" style="font-size:11px;color:var(--t2)">Loading ActionLedger…</span></div>
-    <div class="status-chip"><div class="sdot loading" id="dot-s"></div><span id="inf-s" style="font-size:11px;color:var(--t2)">Loading Stores…</span></div>
-  </div>
-
-  <div class="content">
-
-    <!-- ══ OVERVIEW ══ -->
-    <div class="page active" id="page-overview">
-      <div class="overdue-banner" id="overdue-banner">
-        <span style="font-size:15px;flex-shrink:0">⚠</span>
-        <div><strong id="overdue-count">0</strong> items submitted 2+ weeks ago are still Pending Action — <a onclick="go('actions');filterOverdue()">View overdue items →</a></div>
-      </div>
-      <div class="kpi-grid" id="kpi-ov"></div>
-      <div class="row2">
-        <div class="panel"><div class="panel-head"><span class="panel-title">Critical ≤7 Days by Store</span><span class="panel-badge" id="b-crit">—</span></div><div class="panel-body"><div class="bar-chart" id="ch-crit"></div></div></div>
-        <div class="panel"><div class="panel-head"><span class="panel-title">Total Stock by Store</span></div><div class="panel-body"><div class="bar-chart" id="ch-tot"></div></div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">Store Expiry Summary</span><span class="panel-badge" id="b-ov">—</span></div>
-        <div class="tw ts"><table id="t-ov">
-          <thead><tr><th>Code</th><th>Store</th><th>≤7 Days</th><th>≤30 Days</th><th>≤60 Days</th><th>Total</th><th>Pending</th><th>Actioned</th></tr></thead>
-          <tbody></tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <!-- ══ ACTION CENTER ══ -->
-    <div class="page" id="page-actions">
-      <div class="overdue-banner" id="overdue-banner2" style="margin-bottom:10px">
-        <span style="font-size:15px;flex-shrink:0">⚠</span>
-        <div><strong id="overdue-count2">0</strong> overdue items shown with red highlight.</div>
-      </div>
-      <div class="filter-bar">
-        <div class="fg"><div class="fl">Store Code</div><select class="fs" id="ac-code" onchange="onCodeChange('ac')"><option value="">All</option></select></div>
-        <div class="fg"><div class="fl">Store</div><div class="store-disp" id="ac-store-disp">—</div></div>
-        <div class="fg"><div class="fl">Month</div><select class="fs" id="ac-ym" onchange="renderActions()"><option value="">All</option></select></div>
-        <div class="fg"><div class="fl">Week</div><select class="fs" id="ac-week" onchange="renderActions()"><option value="">All</option></select></div>
-        <div class="fg"><div class="fl">Status</div>
-          <select class="fs" id="ac-status" onchange="renderActions()">
-            <option value="">All</option>
-            <option value="Pending Action">Pending</option>
-            <option value="Action Taken">Actioned</option>
-          </select>
-        </div>
-        <div class="fg"><div class="fl">Risk</div><select class="fs" id="ac-bucket" onchange="renderActions()"><option value="">All</option></select></div>
-        <button class="rbtn" onclick="resetF('ac')">✕ Reset</button>
-        <button class="btn" onclick="exportXL('actions')" style="align-self:flex-end">⬇ Excel</button>
-      </div>
-      <div class="kpi-grid" id="kpi-ac"></div>
-      <div class="panel">
-        <div class="panel-head">
-          <div>
-            <div class="panel-title">Item Action Table</div>
-            <div class="panel-title-sub">☑ Select rows → bulk action toolbar appears · Click row for full details</div>
-          </div>
-          <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
-            <span class="panel-badge" id="b-ac">—</span>
-            <button class="btn" onclick="selectAllVisible()">Select All</button>
-            <button class="btn" onclick="clearSelection()">Clear</button>
-          </div>
-        </div>
-        <div class="tw ts"><table id="t-ac">
-          <thead><tr>
-            <th><input type="checkbox" id="chk-all" onchange="toggleAll(this)"></th>
-            <th>Code</th><th>Store</th><th>Week</th><th>Month</th>
-            <th>Article</th><th>Description</th><th>Dept</th><th>Stock</th>
-            <th>Expiry</th><th>Days Left</th><th>Risk</th><th>Required Action</th><th>Status</th><th>Action Taken</th>
-          </tr></thead>
-          <tbody></tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <!-- ══ STORE SUMMARY ══ -->
-    <div class="page" id="page-stores">
-      <div class="filter-bar">
-        <div class="fg"><div class="fl">Store Code</div><select class="fs" id="ss-code" onchange="onCodeChange('ss')"><option value="">All</option></select></div>
-        <div class="fg"><div class="fl">Store</div><div class="store-disp" id="ss-store-disp">—</div></div>
-        <div class="fg"><div class="fl">Month</div><select class="fs" id="ss-ym" onchange="renderStores()"><option value="">All</option></select></div>
-        <div class="fg"><div class="fl">Week</div><select class="fs" id="ss-week" onchange="renderStores()"><option value="">All</option></select></div>
-        <button class="rbtn" onclick="resetF('ss')">✕ Reset</button>
-        <button class="btn" onclick="exportXL('stores')" style="align-self:flex-end">⬇ Excel</button>
-      </div>
-      <div class="kpi-grid" id="kpi-sum"></div>
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">Week-over-Week Stock</span><span class="panel-badge" id="b-wk">—</span></div>
-        <div class="panel-body"><div class="wk-grid" id="wk-compare"></div></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head">
-          <div><div class="panel-title">Article Stock by Week</div><div class="panel-title-sub">Stock per article per week — rising = getting worse</div></div>
-          <div style="display:flex;gap:7px;align-items:center"><span class="panel-badge" id="b-artweek">—</span><button class="btn" onclick="exportXL('artweek')">⬇ Excel</button></div>
-        </div>
-        <div class="tw ts"><table id="t-artweek"><thead><tr id="t-artweek-hdr"></tr></thead><tbody></tbody></table></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title">Week Breakdown</span><span class="panel-badge" id="b-sum">—</span></div>
-        <div class="tw ts"><table id="t-sum">
-          <thead><tr><th>Month</th><th>Week</th><th>&lt;7</th><th>7–30</th><th>31–60</th><th>61–90</th><th>Total</th><th>Pending</th><th>Actioned</th></tr></thead>
-          <tbody></tbody>
-        </table></div>
-      </div>
-    </div>
-
-    <!-- ══ SUBMISSION STATUS ══ -->
-    <div class="page" id="page-submission">
-      <div class="filter-bar">
-        <div class="fg"><div class="fl">Month</div><select class="fs" id="sub-ym" onchange="renderSubmission()"><option value="">All Months</option></select></div>
-        <div class="fg"><div class="fl">Week</div><select class="fs" id="sub-week" onchange="renderSubmission()"><option value="">All Weeks</option></select></div>
-      </div>
-      <div class="kpi-grid" id="kpi-sub"></div>
-      <div class="panel">
-        <div class="panel-head">
-          <div><div class="panel-title">Store Submission Status</div><div class="panel-title-sub">Based on Stores sheet · Green = submitted · Red = no submission found</div></div>
-          <span class="panel-badge" id="b-sub">—</span>
-        </div>
-        <div class="panel-body"><div class="sub-grid" id="sub-grid"></div></div>
-      </div>
-    </div>
-
-    <!-- ══ DATA INSPECTOR ══ -->
-    <div class="page" id="page-inspector">
-      <div class="insp-tabs">
-        <button class="btn btn-solid" id="insp-btn-e" onclick="switchInsp('e',this)">ExpiryData Raw</button>
-        <button class="btn" id="insp-btn-l" onclick="switchInsp('l',this)">ActionLedger Raw</button>
-        <button class="btn" id="insp-btn-p" onclick="switchInsp('p',this)">Processed</button>
-        <button class="btn" onclick="exportXL(inspExportType)" style="margin-left:auto">⬇ Export</button>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><span class="panel-title" id="insp-title">ExpiryData_WebRaw</span><span class="panel-badge" id="insp-badge">—</span></div>
-        <div class="tw ts"><table id="t-insp"><thead></thead><tbody></tbody></table></div>
-      </div>
-    </div>
-
-  </div><!-- /content -->
-</div><!-- /main -->
-</div><!-- /layout -->
-
-<!-- ══ BULK ACTION TOOLBAR ══ -->
-<div class="action-toolbar" id="action-toolbar">
-  <div class="action-toolbar-count"><strong id="sel-count">0</strong> rows selected</div>
-  <div class="action-toolbar-sep"></div>
-  <button class="act-btn rtc" onclick="confirmAction('RTC Price Change')">🔴 RTC Price Change</button>
-  <button class="act-btn trans" onclick="confirmAction('Store Transfer')">🔵 Store Transfer</button>
-  <button class="act-btn mon" onclick="confirmAction('Monitor')">⬤ Monitor</button>
-  <div class="action-toolbar-sep"></div>
-  <button class="act-btn cancel" onclick="clearSelection()">✕</button>
+<!-- Mobile search bar -->
+<div class="mob-search-bar" id="mobSearchBar">
+  <input type="text" placeholder="Search movies, TV shows..." id="mobSearchInput" oninput="doSearch(this.value)" autocomplete="off">
 </div>
 
-<!-- ══ ITEM POPUP ══ -->
-<div class="overlay" id="popup-overlay" onclick="closePop(event)">
-  <div class="popup">
-    <div class="popup-head">
-      <div><div class="popup-title" id="pop-title">—</div><div class="popup-sub" id="pop-sub">—</div></div>
-      <button class="popup-close" onclick="closePop()">✕</button>
+<div class="notice">
+  ⚡ VidLink + VidSrc streams · TMDB data · Ad-reduced servers
+  <span class="api-status"><span class="api-dot"></span>LIVE</span>
+</div>
+
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-badge">🔥 Featured Today</div>
+    <div class="hero-title">DUNE:<br><span>PART TWO</span></div>
+    <div class="hero-meta">
+      <span class="rating">★ 8.8</span><span class="dot"></span>
+      <span>2024 · 2h 46m</span><span class="dot"></span>
+      <span class="qual">1080p</span>
+      <span class="ltag">ENG</span><span class="ltag">+50 subs</span>
     </div>
-    <div class="popup-body" id="pop-body"></div>
-    <div class="popup-foot" id="pop-foot"></div>
+    <p class="hero-desc">Paul Atreides unites with Chani and the Fremen while seeking revenge against those who destroyed his family. An epic saga of survival and destiny across the universe.</p>
+    <div class="hero-btns">
+      <button class="btn-play" onclick="openPlayer({tmdb:693134,title:'Dune: Part Two',type:'movie'})">
+        <div class="ptri"></div> Watch Now
+      </button>
+      <button class="btn-more" onclick="openInfoById(693134,'movie')">ℹ️ More Info</button>
+    </div>
   </div>
 </div>
 
-<!-- ══ ACTION CONFIRM POPUP ══ -->
-<div class="overlay" id="confirm-overlay">
-  <div class="action-confirm">
-    <h3 id="confirm-title">Confirm Action</h3>
-    <p id="confirm-desc">—</p>
-    <div class="action-confirm-items" id="confirm-items"></div>
-    <div class="confirm-btns">
-      <button class="btn" onclick="document.getElementById('confirm-overlay').classList.remove('open')">Cancel</button>
-      <button class="btn btn-green" id="confirm-ok-btn" onclick="executeAction()">✓ Confirm</button>
+<div class="tabs" id="catTabs">
+  <div class="tab active" onclick="setCat('all',this)">All</div>
+  <div class="tab" onclick="setCat(28,this)">Action</div>
+  <div class="tab" onclick="setCat(18,this)">Drama</div>
+  <div class="tab" onclick="setCat(53,this)">Thriller</div>
+  <div class="tab" onclick="setCat(35,this)">Comedy</div>
+  <div class="tab" onclick="setCat(27,this)">Horror</div>
+  <div class="tab" onclick="setCat(878,this)">Sci-Fi</div>
+  <div class="tab" onclick="setCat(10749,this)">Romance</div>
+  <div class="tab" onclick="setCat(16,this)">Animation</div>
+  <div class="tab" onclick="setCat(99,this)">Docs</div>
+</div>
+
+<div id="homeSections">
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">🔥 <span>Trending</span> Movies</div>
+      <span class="see-all" onclick="showSection('movies',document.getElementById('navMovies'))">See All →</span>
+    </div>
+    <div class="hrow" id="trendRow"><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div></div>
+  </section>
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">✨ <span>Now Playing</span></div>
+      <span class="see-all" onclick="showSection('new',document.getElementById('navNew'))">See All →</span>
+    </div>
+    <div class="hrow" id="nowPlayRow"><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div></div>
+  </section>
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">📺 <span>Trending</span> TV Shows</div>
+      <span class="see-all" onclick="showSection('tv',document.getElementById('navTV'))">See All →</span>
+    </div>
+    <div class="hrow" id="trendTVRow"><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div></div>
+  </section>
+  <section>
+    <div class="sec-head">
+      <div class="sec-title">🆕 <span>Latest</span> TV Episodes</div>
+      <span class="see-all" onclick="showSection('tv',document.getElementById('navTV'))">See All →</span>
+    </div>
+    <div class="hrow" id="newTVRow"><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div><div class="skeleton skel-card"></div></div>
+  </section>
+  <section>
+    <div class="sec-head"><div class="sec-title">🌍 <span>Browse</span> by Language</div></div>
+    <div class="lgrid">
+      <div class="lcard" onclick="langSection('en')"><div class="lico">🇺🇸</div><div class="lname">English</div><div class="lcnt">Hollywood</div></div>
+      <div class="lcard" onclick="langSection('hi')"><div class="lico">🇮🇳</div><div class="lname">Hindi</div><div class="lcnt">Bollywood</div></div>
+      <div class="lcard" onclick="langSection('ta')"><div class="lico">🎭</div><div class="lname">Tamil</div><div class="lcnt">Kollywood</div></div>
+      <div class="lcard" onclick="langSection('te')"><div class="lico">🌟</div><div class="lname">Telugu</div><div class="lcnt">Tollywood</div></div>
+      <div class="lcard" onclick="langSection('ml')"><div class="lico">🌴</div><div class="lname">Malayalam</div><div class="lcnt">Mollywood</div></div>
+      <div class="lcard" onclick="langSection('kn')"><div class="lico">🌺</div><div class="lname">Kannada</div><div class="lcnt">Sandalwood</div></div>
+      <div class="lcard" onclick="langSection('ko')"><div class="lico">🇰🇷</div><div class="lname">Korean</div><div class="lcnt">K-Drama</div></div>
+      <div class="lcard" onclick="langSection('ja')"><div class="lico">🇯🇵</div><div class="lname">Japanese</div><div class="lcnt">J-Cinema</div></div>
+      <div class="lcard" onclick="langSection('es')"><div class="lico">🇪🇸</div><div class="lname">Spanish</div><div class="lcnt">Spain & LATAM</div></div>
+      <div class="lcard" onclick="langSection('fr')"><div class="lico">🇫🇷</div><div class="lname">French</div><div class="lcnt">French Cinema</div></div>
+      <div class="lcard" onclick="langSection('ar')"><div class="lico">🇸🇦</div><div class="lname">Arabic</div><div class="lcnt">Arab Cinema</div></div>
+      <div class="lcard" onclick="langSection('zh')"><div class="lico">🇨🇳</div><div class="lname">Chinese</div><div class="lcnt">Mandarin</div></div>
+      <div class="lcard" onclick="langSection('pt')"><div class="lico">🇧🇷</div><div class="lname">Portuguese</div><div class="lcnt">Brazil</div></div>
+      <div class="lcard" onclick="langSection('de')"><div class="lico">🇩🇪</div><div class="lname">German</div><div class="lcnt">German Cinema</div></div>
+      <div class="lcard" onclick="langSection('ru')"><div class="lico">🇷🇺</div><div class="lname">Russian</div><div class="lcnt">Russian Cinema</div></div>
+      <div class="lcard" onclick="langSection('th')"><div class="lico">🇹🇭</div><div class="lname">Thai</div><div class="lcnt">Thai Cinema</div></div>
+    </div>
+  </section>
+</div>
+
+<section id="gridSection" style="display:none">
+  <div class="sec-head">
+    <div class="sec-title" id="gridTitle">📽️ <span>Content</span></div>
+    <span class="see-all" id="gridCount"></span>
+  </div>
+  <div class="mgrid" id="mainGrid"></div>
+  <button class="load-more-btn" id="loadMoreBtn" onclick="loadMoreGrid()" style="display:none">Load More</button>
+</section>
+
+<section id="searchSection" style="display:none">
+  <div class="sec-head">
+    <div class="sec-title">🔍 <span>Search</span> Results</div>
+    <span class="see-all" id="searchCount"></span>
+  </div>
+  <div class="mgrid" id="searchGrid"></div>
+</section>
+
+<div class="apk-promo">
+  <div class="apk-promo-txt">
+    <h2>WATCH ON <span>SPLAYER APK</span></h2>
+    <p>Best Android player for our streams. Hardware acceleration, multi-audio, Chromecast, offline downloads, 50+ subtitle languages.</p>
+    <div class="apk-feats">
+      <div class="apk-feat">Hardware accelerated 4K/HDR playback</div>
+      <div class="apk-feat">Multi-language audio &amp; subtitle tracks</div>
+      <div class="apk-feat">Chromecast &amp; Smart TV casting</div>
+      <div class="apk-feat">Download for offline viewing</div>
+      <div class="apk-feat">Gesture controls &amp; PiP mode</div>
+    </div>
+    <button class="apk-dl" onclick="openSPlayer()">🤖 Get SPlayer APK</button>
+  </div>
+  <div class="apk-ghost">📱</div>
+</div>
+
+<footer>
+  <div class="ftlinks">
+    <a onclick="goHome()">Home</a>
+    <a onclick="showSection('movies',document.getElementById('navMovies'))">Movies</a>
+    <a onclick="showSection('tv',document.getElementById('navTV'))">TV Shows</a>
+    <a>DMCA</a><a>Privacy</a><a>Terms</a>
+  </div>
+  <p>© 2026 StreamVault · VidLink + VidSrc streams · TMDB data · All content © respective owners</p>
+</footer>
+
+<!-- PLAYER MODAL -->
+<div class="player-modal" id="playerModal">
+  <button class="player-close" onclick="closePlayer()">✕</button>
+  <div class="player-wrap">
+    <div class="player-title-bar">
+      <div class="ptitle" id="playerTitle">Loading...</div>
+      <div class="player-controls">
+        <div class="pservers" id="playerServers"></div>
+        <button class="fs-btn" onclick="toggleFullscreen()" title="Full Screen">⛶ FS</button>
+        <button class="splayer-btn" id="splayerBtn" onclick="openInSPlayer()">📱 SPlayer</button>
+      </div>
+    </div>
+    <div class="iframe-box" id="iframeBox">
+      <div class="iframe-loader" id="iframeLoader">
+        <div class="spin"></div>
+        <span>Loading stream...</span>
+      </div>
+      <iframe id="playerIframe" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="no-referrer" style="display:none"></iframe>
+    </div>
+  </div>
+  <div class="ep-wrap" id="epWrap" style="display:none">
+    <div class="ep-lbl">Season</div>
+    <div class="season-row" id="seasonBtns"></div>
+    <div class="ep-lbl">Episodes</div>
+    <div class="ep-grid" id="epBtns"></div>
+  </div>
+</div>
+
+<!-- INFO MODAL -->
+<div class="info-modal" id="infoModal" onclick="if(event.target===this)closeInfo()">
+  <div class="info-box">
+    <div class="info-top">
+      <img class="info-bg" id="infoImg" src="" alt="" onerror="this.src='https://via.placeholder.com/640x190/111827/7a8299?text=StreamVault'">
+      <div class="info-bg-ov"></div>
+      <button class="info-close" onclick="closeInfo()">✕</button>
+    </div>
+    <div class="info-body">
+      <div class="info-title" id="infoTitle"></div>
+      <div class="info-meta" id="infoMeta"></div>
+      <div class="info-desc" id="infoDesc"></div>
+      <div class="info-btns" id="infoBtns"></div>
+      <div class="srv-lbl">⚡ Servers</div>
+      <div class="srv-grid" id="srvGrid"></div>
     </div>
   </div>
 </div>
@@ -648,625 +456,431 @@ table {
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════
-// CONFIG — update these URLs
-// ══════════════════════════════════════════════
-const EXPIRY_URL  = 'https://script.google.com/macros/s/AKfycbwqjOXHTw6U7UC8kcSgZj8YJLVpqww3buF2GsnjuQCEBFBXbDktFDpRHSgySoQNhHA6/exec';
-const LEDGER_URL  = 'https://script.google.com/macros/s/AKfycbxleZYXY-ZnrwDHvFINQx_Uei1k7qRM14_wFAbrIQ5virw0Y6mq6WxsbOUkCG17Nh0kuQ/exec';
-// ✅ Same ExpirySystem sheet — add a doGet action="stores" to return Stores sheet
-const STORES_URL  = 'https://script.google.com/macros/s/AKfycbwvJ9069dOAncBLWAWUuAsjqY-78_xkfuo4TUqLSi1JqxEtDb6PqeFXINypEuOM3unM9A/exec?action=stores';
-// ✅ Ledger POST URL — update to your ledger-writing Apps Script URL
-const LEDGER_POST = 'https://script.google.com/macros/s/AKfycbxleZYXY-ZnrwDHvFINQx_Uei1k7qRM14_wFAbrIQ5virw0Y6mq6WxsbOUkCG17Nh0kuQ/exec';
+const TMDB_KEY = '4e44d9029b1270a757cddc766a1bcb63';
+const TMDB_API = 'https://api.themoviedb.org/3';
+const IMG = 'https://image.tmdb.org/t/p/';
 
-const MS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-let rawE=[], rawL=[], proc=[], allStoreCodes=[], curPage='overview', inspMode='e', inspExportType='raw-e';
-let selectedIndices = new Set(), pendingAction = '';
-let codeToStore = {};
+// ── SERVERS ──
+// VidLink uses TMDB IDs directly (no IMDB needed, fewer ads)
+// VidSrc fallbacks use IMDB IDs
+const SERVERS = [
+  { label:'VidLink', type:'vidlink' },
+  { label:'VidSrc 1', type:'vidsrc', domain:'vidsrc.me' },
+  { label:'VidSrc 2', type:'vidsrc', domain:'vidsrc.xyz' },
+  { label:'VidLink 2', type:'vidlink2' },
+];
 
-// ══ NAV ══
-const TITLES = {overview:'Overview',actions:'Action Center',stores:'Store Summary',submission:'Submission Status',inspector:'Data Inspector'};
-function go(n){
-  curPage=n;
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  document.getElementById('page-'+n).classList.add('active');
-  document.getElementById('n-'+n).classList.add('active');
-  document.getElementById('ptitle').textContent=TITLES[n];
-  if(proc.length) renderPage(n);
-}
-function renderPage(n){({overview:renderOverview,actions:renderActions,stores:renderStores,submission:renderSubmission,inspector:renderInspector})[n]?.();}
+let curItem = null, curSeason = 1, curEp = 1, curSrvIdx = 0;
+let gridState = { endpoint:'', type:'movie', page:1, params:{} };
+let activeCat = 'all';
+let curSec = 'home';
+let curStreamUrl = '';
+let isFullscreen = false;
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-// ══ TOAST ══
-function toast(msg, type='', ms=2600){
-  const el=document.getElementById('toast');
-  el.textContent=msg; el.className='toast '+(type||'');
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),ms);
+// ── TMDB ──
+async function tmdb(path, params={}) {
+  const u = new URL(TMDB_API + path);
+  u.searchParams.set('api_key', TMDB_KEY);
+  u.searchParams.set('language','en-US');
+  Object.entries(params).forEach(([k,v]) => u.searchParams.set(k,v));
+  try { const r = await fetch(u); return await r.json(); }
+  catch { return {}; }
 }
 
-// ══ CSV FETCH ══
-async function fetchCSV(url){
-  const r=await fetch(url+(url.includes('?')?'&':'?')+'_t='+Date.now());
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  const txt=await r.text();
-  const lines=txt.trim().split('\n');
-  if(lines.length<2) return [];
-  const hdrs=csvRow(lines[0]);
-  return lines.slice(1).map(l=>{
-    const v=csvRow(l); const o={};
-    hdrs.forEach((h,i)=>{o[h.trim()]=(v[i]||'').trim();});
-    return o;
-  }).filter(r=>Object.values(r).some(v=>v));
+async function getExternalIds(tmdbId, type) {
+  const d = await tmdb(`/${type}/${tmdbId}/external_ids`);
+  return d.imdb_id || '';
 }
-function csvRow(line){
-  const r=[];let c='';let q=false;
-  for(let i=0;i<line.length;i++){
-    const ch=line[i];
-    if(ch==='"'&&!q)q=true;
-    else if(ch==='"'&&q){if(line[i+1]==='"'){c+='"';i++;}else q=false;}
-    else if(ch===','&&!q){r.push(c);c='';}
-    else c+=ch;
+
+// ── URL BUILDER ──
+function buildStreamUrl(srv, tmdbId, imdbId, type, season=1, ep=1) {
+  if(srv.type === 'vidlink') {
+    // VidLink: uses TMDB ID directly, clean player, minimal ads
+    if(type==='movie') return `https://vidlink.pro/movie/${tmdbId}`;
+    return `https://vidlink.pro/tv/${tmdbId}/${season}/${ep}`;
   }
-  r.push(c); return r;
-}
-function cv(row,...names){
-  for(const n of names){
-    if(row[n]!==undefined&&row[n]!=='')return row[n];
-    const k=Object.keys(row).find(k2=>k2.toLowerCase().replace(/[\s_]/g,'')===n.toLowerCase().replace(/[\s_]/g,''));
-    if(k&&row[k]!==undefined&&row[k]!=='')return row[k];
+  if(srv.type === 'vidlink2') {
+    // VidLink alternate params
+    if(type==='movie') return `https://vidlink.pro/movie/${tmdbId}?primaryColor=e63946&secondaryColor=ff6b35&iconColor=ffd60a&autoplay=true`;
+    return `https://vidlink.pro/tv/${tmdbId}/${season}/${ep}?primaryColor=e63946&secondaryColor=ff6b35&iconColor=ffd60a&autoplay=true`;
   }
-  return '';
-}
-
-// ══ DATE PARSER ══
-const MMAP={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-function parseDate(v){
-  if(!v)return null; v=String(v).trim(); if(!v)return null;
-  const n=parseFloat(v);
-  if(!isNaN(n)&&n>40000&&n<60000){const d=new Date(Date.UTC(1899,11,30)+n*86400000);return new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());}
-  let m=v.match(/(?:[A-Za-z]{3,}\s+)?([A-Za-z]{3,})\s+(\d{1,2})\s+(\d{4})/);
-  if(m){const mo=MMAP[m[1].toLowerCase().slice(0,3)];if(mo!==undefined)return new Date(+m[3],mo,+m[2]);}
-  m=v.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);
-  m=v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);if(m)return new Date(+m[3],+m[2]-1,+m[1]);
-  const clean=v.replace(/[\u0600-\u06FF\u200F\u200E\u202A-\u202E()]/g,'').replace(/GMT[+-]\d{4}/gi,'').replace(/\s+/g,' ').trim();
-  if(clean){const fd=new Date(clean);if(!isNaN(fd))return new Date(fd.getFullYear(),fd.getMonth(),fd.getDate());}
+  if(srv.type === 'vidsrc') {
+    // VidSrc: uses IMDB ID
+    if(!imdbId) return null;
+    const sl = document.getElementById('langSel')?.value || 'en';
+    if(type==='movie') return `https://${srv.domain}/embed/movie?imdb=${imdbId}&ds_lang=${sl}`;
+    return `https://${srv.domain}/embed/tv?imdb=${imdbId}&season=${season}&episode=${ep}&ds_lang=${sl}&autonext=1`;
+  }
   return null;
 }
-function parseSM(v){
-  if(!v||!v.trim())return{ym:'',year:null,monthNum:null,disp:''};
-  v=v.trim(); let m;
-  m=v.match(/^(\d{4})-(\d{1,2})$/);
-  if(m){const y=+m[1],mn=+m[2],i=mn-1;return{ym:`${y}-${String(mn).padStart(2,'0')}`,year:y,monthNum:mn,monthShort:MS[i],disp:MS[i]+' '+y};}
-  m=v.match(/^([A-Za-z]+)\s+(\d{4})$/);
-  if(m){const idx=MS.findIndex(x=>x.toLowerCase()===m[1].slice(0,3).toLowerCase());if(idx>=0){const y=+m[2];return{ym:`${y}-${String(idx+1).padStart(2,'0')}`,year:y,monthNum:idx+1,monthShort:MS[idx],disp:MS[idx]+' '+y};}}
-  return{ym:v,year:null,monthNum:null,disp:v};
-}
-function calcBucket(days){
-  if(days===null||days===''||isNaN(Number(days)))return'';
-  days=Number(days);
-  if(days<=0)return'Expired';if(days<=7)return'<7 Days';if(days<=30)return'7–30 Days';if(days<=60)return'31–60 Days';if(days<=90)return'61–90 Days';return'>90 Days';
-}
-function calcReqAction(bkt){
-  if(bkt==='<7 Days'||bkt==='Expired')return'RTC Price Change';
-  if(bkt==='7–30 Days')return'Store Transfer';
-  return'Monitor';
-}
 
-// ══ LEDGER MAP ══
-function mkKey(a,s,y,w){return[a,s,y,w].map(x=>(x||'').trim().toLowerCase()).join('|');}
-function buildLedgerMap(ledger){
-  const map={};
-  ledger.forEach(r=>{
-    const article=cv(r,'Article','ArticleNo'),storeCode=cv(r,'StoreCode','Store Code'),subMRaw=cv(r,'SubmissionMonth','Submission Month'),week=cv(r,'Week');
-    const sm=parseSM(subMRaw);const ym=sm.ym||subMRaw||'';if(!article)return;
-    const entry={actionTaken:cv(r,'ActionTaken','Action Taken'),comments:cv(r,'Comments','Remarks')};
-    [mkKey(article,storeCode,ym,week),mkKey(article,storeCode,ym,''),mkKey(article,storeCode,'','')].forEach(k=>{
-      if(!map[k])map[k]=Object.assign({},entry);
-      else{if(entry.actionTaken&&!map[k].actionTaken)map[k].actionTaken=entry.actionTaken;if(entry.comments&&!map[k].comments)map[k].comments=entry.comments;}
-    });
-  });
-  return map;
+// ── CARD ──
+function card(item, type='movie') {
+  const poster = item.poster_path ? IMG+'w342'+item.poster_path : '';
+  const title = item.title || item.name || '—';
+  const year = (item.release_date||item.first_air_date||'').slice(0,4);
+  const rating = item.vote_average ? item.vote_average.toFixed(1) : '—';
+  const badge = type==='tv' ? 'cb-s' : rating>=8.5 ? 'cb-4k' : 'cb-hd';
+  const badgeTxt = type==='tv' ? 'SERIES' : rating>=8.5 ? '4K' : 'HD';
+  const ico = type==='tv' ? '📺' : '🎬';
+  const safe = JSON.stringify({tmdb:item.id,title,type,rating,year}).replace(/"/g,'&quot;');
+  return `<div class="card" onclick='openPlayer(${safe})'>
+    <div class="card-thumb">
+      ${poster ? `<img src="${poster}" alt="${title}" loading="lazy" onerror="this.parentNode.style.background='var(--bg3)'">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg3)">${ico}</div>`}
+      <span class="cb ${badge}">${badgeTxt}</span>
+      <span class="ctag">${ico}</span>
+      <div class="card-ov"><div class="pcircle"><div class="pico"></div></div></div>
+    </div>
+    <div class="card-info">
+      <div class="card-ttl">${title}</div>
+      <div class="card-sub"><span class="star">★${rating}</span><span class="dot"></span><span>${year}</span></div>
+    </div>
+  </div>`;
 }
 
-// ══ PROCESS ══
-function processRows(rawExpiry,ledgerMap){
-  return rawExpiry.map((r,idx)=>{
-    const store=cv(r,'Store','StoreName'),storeCode=cv(r,'StoreCode','Store Code'),
-          article=cv(r,'Article'),barcode=cv(r,'Barcode','EAN'),
-          desc=cv(r,'Description','ProductName'),week=cv(r,'Week'),
-          stock=cv(r,'Stock','StockQty'),dept=cv(r,'Department','Dept');
-    let subMonthRaw=cv(r,'SubmissionMonth','Submission Month');
-    if(!subMonthRaw){const ts=cv(r,'Timestamp');if(ts){const d=parseDate(ts);if(d)subMonthRaw=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;}}
-    const sm=parseSM(subMonthRaw);const subMonthOut=sm.ym||subMonthRaw||'';
-    const expRaw=cv(r,'ExpiryDate','Expiry Date');const expDate=parseDate(expRaw);
-    const expDateDisp=expDate?String(expDate.getDate()).padStart(2,'0')+'/'+String(expDate.getMonth()+1).padStart(2,'0')+'/'+expDate.getFullYear():'';
-    let daysLeft=null;const dlRaw=cv(r,'DaysLeft','Days Left');
-    if(dlRaw!==''){const dlP=parseInt(dlRaw,10);if(!isNaN(dlP))daysLeft=dlP;}
-    if(daysLeft===null&&expDate)daysLeft=Math.round((expDate-TODAY)/86400000);
-    const bucket=calcBucket(daysLeft),reqAction=calcReqAction(bucket);
-    const tsRaw=cv(r,'Timestamp');const tsDate=parseDate(tsRaw);
-    const ledgerRow=ledgerMap[mkKey(article,storeCode,subMonthOut,week)]||ledgerMap[mkKey(article,storeCode,subMonthOut,'')]||ledgerMap[mkKey(article,storeCode,'','')]||{};
-    const actionTaken=(ledgerRow.actionTaken||'').trim(),comments=(ledgerRow.comments||'').trim();
-    return{
-      _idx:idx,Store:store,StoreCode:storeCode,Article:article,Barcode:barcode,
-      Description:desc,Department:dept,Stock:stock,ExpiryDate:expDateDisp,
-      DaysLeft:daysLeft!==null?daysLeft:'','Expiry Risk Bucket':bucket,
-      'Required Action':reqAction,'Action Taken':actionTaken,Comments:comments,
-      'Action Status':actionTaken?'Action Taken':'Pending Action',
-      Week:week,'Submission Month':subMonthOut,'Sub Month Display':sm.disp||subMonthOut,
-      MonthNum:sm.monthNum,Year:sm.year,_tsDate:tsDate,_raw:r
-    };
-  });
+function skels(n=6){return Array(n).fill('<div class="skeleton skel-card"></div>').join('')}
+
+// ── ROW ──
+async function loadRow(id, path, type, params={}) {
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.innerHTML = skels(8);
+  const d = await tmdb(path, params);
+  const items = d.results||[];
+  el.innerHTML = items.length ? items.slice(0,16).map(r=>card(r,type)).join('') : '<span style="color:var(--muted);font-size:12px;padding:20px 0;display:block">No content loaded</span>';
 }
 
-// ══ LOAD ALL ══
-async function loadAll(){
-  const btn=document.getElementById('rfbtn');btn.classList.add('loading');
-  setDot('e','loading','Fetching ExpiryData…');
-  setDot('l','loading','Fetching ActionLedger…');
-  setDot('s','loading','Fetching Stores…');
-
-  const [er,lr,sr]=await Promise.allSettled([fetchCSV(EXPIRY_URL),fetchCSV(LEDGER_URL),fetchStores()]);
-
-  if(lr.status==='fulfilled'){rawL=lr.value;setDot('l','ok',`<strong>${rawL.length}</strong> ledger rows`);}
-  else{rawL=[];setDot('l','err','❌ '+lr.reason.message);}
-
-  if(sr.status==='fulfilled'){
-    allStoreCodes=sr.value;
-    setDot('s','ok',`<strong>${allStoreCodes.length}</strong> stores`);
-  }else{
-    allStoreCodes=[];setDot('s','err','❌ '+sr.reason.message);
-  }
-
-  const ledgerMap=buildLedgerMap(rawL);
-
-  if(er.status==='fulfilled'){
-    rawE=er.value;proc=processRows(rawE,ledgerMap);
-    setDot('e','ok',`<strong>${rawE.length}</strong> expiry rows`);
-  }else{rawE=[];proc=[];setDot('e','err','❌ '+er.reason.message);}
-
-  document.getElementById('ts').textContent=new Date().toLocaleTimeString();
-  btn.classList.remove('loading');
-  if(proc.length||allStoreCodes.length){populateFilters();renderPage(curPage);}
+// ── INIT ──
+function initHome(){
+  loadRow('trendRow','/trending/movie/week','movie');
+  loadRow('nowPlayRow','/movie/now_playing','movie');
+  loadRow('trendTVRow','/trending/tv/week','tv');
+  loadRow('newTVRow','/tv/on_the_air','tv');
 }
 
-async function fetchStores(){
-  try{
-    // Try JSON first (from Exp App script)
-    const r=await fetch(STORES_URL+'&_t='+Date.now());
-    const d=await r.json();
-    // d is array of [code, name] rows
-    codeToStore={};
-    const codes=[];
-    d.forEach(s=>{
-      const code=String(s[0]||'').trim();
-      const name=String(s[1]||'').trim();
-      if(code){codeToStore[code]=name;codes.push({code,name});}
-    });
-    return codes;
-  }catch(e){
-    // Fallback: build from proc
-    return [];
-  }
+// ── SECTIONS ──
+async function showSection(sec, el) {
+  curSec = sec;
+  document.querySelectorAll('.nav-links a').forEach(a=>a.classList.remove('active'));
+  if(el) el.classList.add('active');
+
+  const h=document.getElementById('homeSections');
+  const g=document.getElementById('gridSection');
+  const s=document.getElementById('searchSection');
+  h.style.display='none'; g.style.display='none'; s.style.display='none';
+  document.getElementById('searchInput').value='';
+  closeMobSearch();
+
+  if(sec==='home'){ h.style.display=''; return; }
+
+  g.style.display='';
+  window.scrollTo({top:0,behavior:'smooth'});
+
+  let path, type, title;
+  const catParam = activeCat!=='all' ? {with_genres:activeCat} : {};
+
+  if(sec==='movies'){path=activeCat==='all'?'/trending/movie/week':'/discover/movie';type='movie';title='🎬 <span>Movies</span>';}
+  else if(sec==='tv'){path=activeCat==='all'?'/trending/tv/week':'/discover/tv';type='tv';title='📺 <span>TV Shows</span>';}
+  else{path='/movie/now_playing';type='movie';title='✨ <span>New Releases</span>';}
+
+  gridState={endpoint:path,type,page:1,params:{...catParam}};
+  document.getElementById('gridTitle').innerHTML=title;
+  document.getElementById('mainGrid').innerHTML=skels(12);
+  document.getElementById('loadMoreBtn').style.display='none';
+
+  const d=await tmdb(path,{...catParam,page:1});
+  const items=d.results||[];
+  document.getElementById('gridCount').textContent=(d.total_results||items.length)+' titles';
+  document.getElementById('mainGrid').innerHTML=items.length?items.map(r=>card(r,type)).join(''):'<div class="empty">No results</div>';
+  document.getElementById('loadMoreBtn').style.display=d.total_pages>1?'block':'none';
 }
 
-function setDot(w,s,m){document.getElementById('dot-'+w).className='sdot '+s;document.getElementById('inf-'+w).innerHTML=m;}
-
-// ══ FILTERS ══
-function populateFilters(){
-  // Build codeToStore from proc if stores fetch failed
-  proc.forEach(r=>{if(r.StoreCode&&r.Store&&!codeToStore[r.StoreCode])codeToStore[r.StoreCode]=r.Store;});
-
-  const codes=[...new Set(proc.map(r=>r.StoreCode).filter(Boolean))].sort();
-  const weeks=[...new Set(proc.map(r=>r.Week).filter(Boolean))].sort();
-  const buckets=[...new Set(proc.map(r=>r['Expiry Risk Bucket']).filter(Boolean))];
-  const ymSet=[...new Set(proc.map(r=>r['Submission Month']).filter(Boolean))].sort();
-  const ymOpts=ymSet.map(ym=>{const m=ym.match(/^(\d{4})-(\d{2})$/);return m?{val:ym,lbl:MS[+m[2]-1]+' '+m[1]}:{val:ym,lbl:ym};});
-
-  fill('ss-code',codes);fill('ss-week',weeks);fillOpts('ss-ym',ymOpts);
-  fill('ac-code',codes);fill('ac-week',weeks);fill('ac-bucket',buckets);fillOpts('ac-ym',ymOpts);
-  fillOpts('sub-ym',ymOpts);fill('sub-week',weeks);
-  updateStoreDisp('ss');updateStoreDisp('ac');
-}
-function fill(id,vals){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">All</option>';vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;el.appendChild(o);});if(vals.includes(cur))el.value=cur;}
-function fillOpts(id,opts){const el=document.getElementById(id);if(!el)return;const cur=el.value;el.innerHTML='<option value="">All</option>';opts.forEach(({val,lbl})=>{const o=document.createElement('option');o.value=val;o.textContent=lbl;el.appendChild(o);});if(opts.some(o=>o.val===cur))el.value=cur;}
-function gv(id){const el=document.getElementById(id);return el?el.value:'';}
-function onCodeChange(pfx){updateStoreDisp(pfx);if(pfx==='ss')renderStores();else renderActions();}
-function updateStoreDisp(pfx){const code=gv(pfx+'-code');const disp=document.getElementById(pfx+'-store-disp');if(disp)disp.textContent=code?(codeToStore[code]||code):'—';}
-function fData(pfx){
-  let d=[...proc];
-  const code=gv(pfx+'-code'),ym=gv(pfx+'-ym'),week=gv(pfx+'-week');
-  if(code)d=d.filter(r=>r.StoreCode===code);
-  if(ym)d=d.filter(r=>r['Submission Month']===ym);
-  if(week)d=d.filter(r=>r.Week===week);
-  if(pfx==='ac'){
-    const st=gv('ac-status'),bk=gv('ac-bucket');
-    if(st)d=d.filter(r=>r['Action Status']===st);
-    if(bk)d=d.filter(r=>r['Expiry Risk Bucket']===bk);
-  }
-  return d;
-}
-function resetF(pfx){document.querySelectorAll(`[id^="${pfx}-"]`).forEach(el=>{if(el.tagName==='SELECT')el.value='';});updateStoreDisp(pfx);if(pfx==='ss')renderStores();else renderActions();}
-
-// filter overdue in action center
-function filterOverdue(){
-  document.getElementById('ac-status').value='Pending Action';
-  renderActions();
+async function loadMoreGrid(){
+  gridState.page++;
+  const d=await tmdb(gridState.endpoint,{...gridState.params,page:gridState.page});
+  const items=d.results||[];
+  document.getElementById('mainGrid').insertAdjacentHTML('beforeend',items.map(r=>card(r,gridState.type)).join(''));
+  if(gridState.page>=(d.total_pages||1)) document.getElementById('loadMoreBtn').style.display='none';
 }
 
-// ══ HELPERS ══
-const F={
-  le7:r=>r['Expiry Risk Bucket']==='<7 Days',
-  le30:r=>['<7 Days','7–30 Days'].includes(r['Expiry Risk Bucket']),
-  b7:r=>r['Expiry Risk Bucket']==='<7 Days',
-  b30:r=>r['Expiry Risk Bucket']==='7–30 Days',
-  b60:r=>r['Expiry Risk Bucket']==='31–60 Days',
-  b90:r=>r['Expiry Risk Bucket']==='61–90 Days',
-  pend:r=>r['Action Status']==='Pending Action',
-  comp:r=>r['Action Status']==='Action Taken'
-};
-const cnt=(d,f)=>f?d.filter(f).length:d.length;
-function bktCls(b){if(!b)return'na';if(b==='<7 Days'||b==='Expired')return'crit';if(b==='7–30 Days')return'high';if(b==='31–60 Days')return'med';return'low';}
-function KPI(label,cls,val,sub=''){return`<div class="kpi ${cls}"><div class="kpi-label">${label}</div><div class="kpi-value">${typeof val==='number'?val.toLocaleString():val}</div>${sub?`<div class="kpi-sub">${sub}</div>`:''}</div>`;}
-function BR(label,val,max,color){const p=max>0?(val/max*100).toFixed(1):0;return`<div class="bar-row"><div class="bar-lbl" title="${label}">${label}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${color}"><span class="bar-val">${val}</span></div></div></div>`;}
-function fmtDate(v){if(!v)return'—';const d=new Date(v);return isNaN(d)?v:d.toLocaleDateString('en-GB');}
+function goHome(){ showSection('home',document.getElementById('navHome')); }
 
-// days bar helper
-function daysBar(dlNum){
-  if(dlNum===null)return'—';
-  const clr=dlNum<=7?'var(--red)':dlNum<=30?'var(--orange)':dlNum<=60?'var(--yellow)':'var(--green)';
-  const pct=Math.min(100,Math.max(0,(dlNum/90)*100));
-  return`<div class="days-bar"><span class="mono" style="color:${clr}">${dlNum}</span><div class="days-bar-track"><div class="days-bar-fill" style="width:${pct}%;background:${clr}"></div></div></div>`;
+// ── SEARCH ──
+let stimer;
+async function doSearch(q) {
+  clearTimeout(stimer);
+  const h=document.getElementById('homeSections'),g=document.getElementById('gridSection'),s=document.getElementById('searchSection');
+  if(!q.trim()){s.style.display='none';if(curSec==='home')h.style.display='';else g.style.display='';return;}
+  stimer=setTimeout(async()=>{
+    h.style.display='none';g.style.display='none';s.style.display='';
+    document.getElementById('searchGrid').innerHTML=skels(8);
+    const [mv,tv]=await Promise.all([tmdb('/search/movie',{query:q}),tmdb('/search/tv',{query:q})]);
+    const all=[...(mv.results||[]).map(r=>({...r,_t:'movie'})),...(tv.results||[]).map(r=>({...r,_t:'tv'}))].sort((a,b)=>b.popularity-a.popularity);
+    document.getElementById('searchCount').textContent=all.length+' results';
+    document.getElementById('searchGrid').innerHTML=all.length?all.map(r=>card(r,r._t)).join(''):'<div class="empty">No results for "'+q+'"</div>';
+  },380);
 }
 
-// ══ OVERDUE DETECTION ══
-function detectOverdue(){
-  const cnt=proc.filter(r=>r['Action Status']==='Pending Action'&&r._tsDate&&Math.round((TODAY-r._tsDate)/86400000)>=14).length;
-  ['overdue-banner','overdue-banner2'].forEach(id=>{
-    const el=document.getElementById(id);if(!el)return;
-    if(cnt>0){const c=document.getElementById(id==='overdue-banner'?'overdue-count':'overdue-count2');if(c)c.textContent=cnt;el.style.display='flex';}
-    else el.style.display='none';
-  });
-  return cnt;
+// ── MOB SEARCH ──
+function toggleMobSearch(){
+  const bar=document.getElementById('mobSearchBar');
+  bar.classList.toggle('open');
+  if(bar.classList.contains('open')) document.getElementById('mobSearchInput').focus();
+  else { document.getElementById('mobSearchInput').value=''; doSearch(''); }
+}
+function closeMobSearch(){
+  document.getElementById('mobSearchBar').classList.remove('open');
+  document.getElementById('mobSearchInput').value='';
 }
 
-// ══ OVERVIEW ══
-function renderOverview(){
-  detectOverdue();
-  const d=proc;
-  const totalStock=d.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
-  document.getElementById('kpi-ov').innerHTML=
-    KPI('Total Items','neu',d.length)+
-    KPI('Total Stock','blu',totalStock)+
-    KPI('Critical ≤7 Days','red',cnt(d,F.le7),'Immediate RTC needed')+
-    KPI('≤30 Days','ora',cnt(d,F.le30))+
-    KPI('Pending Actions','ora',cnt(d,F.pend))+
-    KPI('Action Taken','grn',cnt(d,F.comp));
-
-  const sm={};d.forEach(r=>{const k=r.StoreCode||'?';if(!sm[k])sm[k]={code:k,store:r.Store||k,total:0,l7:0,l30:0,l60:0,p:0,c:0};sm[k].total++;if(F.le7(r))sm[k].l7++;if(F.le30(r))sm[k].l30++;if(F.le30(r))sm[k].l60++;if(F.pend(r))sm[k].p++;if(F.comp(r))sm[k].c++;});
-  const stores=Object.values(sm).sort((a,b)=>b.total-a.total);
-  document.getElementById('b-ov').textContent=stores.length+' stores';
-  document.getElementById('b-crit').textContent=stores.length+' stores';
-  const mxT=Math.max(...stores.map(s=>s.total),1),mxC=Math.max(...stores.map(s=>s.l7),1);
-  document.getElementById('ch-tot').innerHTML=stores.slice(0,12).map(s=>BR(s.code,s.total,mxT,'var(--blue)')).join('');
-  document.getElementById('ch-crit').innerHTML=stores.slice(0,12).map(s=>BR(s.code,s.l7,mxC,'var(--red)')).join('');
-  document.querySelector('#t-ov tbody').innerHTML=stores.map(s=>`<tr onclick="drillStore('${s.code}')" title="Click to see ${s.store} in Action Center">
-    <td class="mono b">${s.code}</td><td class="b">${s.store}</td>
-    <td style="color:var(--red)" class="mono">${s.l7}</td>
-    <td style="color:var(--orange)" class="mono">${s.l30}</td>
-    <td style="color:var(--yellow)" class="mono">${s.l60}</td>
-    <td class="mono b">${s.total}</td>
-    <td><span class="badge pend">${s.p}</span></td>
-    <td><span class="badge done">${s.c}</span></td>
-  </tr>`).join('');
-}
-function drillStore(code){const el=document.getElementById('ac-code');if(el){el.value=code;updateStoreDisp('ac');}go('actions');}
-
-// ══ ACTION CENTER ══
-function renderActions(){
-  detectOverdue();
-  const d=fData('ac');
-  const searchTerm=gv('globalSearch').toLowerCase();
-  const filtered=searchTerm?d.filter(r=>
-    (r.Article||'').toLowerCase().includes(searchTerm)||
-    (r.Description||'').toLowerCase().includes(searchTerm)||
-    (r.Barcode||'').toLowerCase().includes(searchTerm)
-  ):d;
-
-  const totalStock=filtered.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
-  document.getElementById('kpi-ac').innerHTML=
-    KPI('Items','neu',filtered.length)+
-    KPI('Total Stock','blu',totalStock)+
-    KPI('Critical ≤7','red',cnt(filtered,F.le7))+
-    KPI('≤30 Days','ora',cnt(filtered,F.le30))+
-    KPI('Pending','ora',cnt(filtered,F.pend))+
-    KPI('Actioned','grn',cnt(filtered,F.comp));
-
-  document.querySelector('#t-ac tbody').innerHTML=filtered.map(r=>{
-    const bc=bktCls(r['Expiry Risk Bucket']);
-    const sc=r['Action Status']==='Pending Action'?'pend':'done';
-    const dlNum=r.DaysLeft!==''&&r.DaysLeft!==null?Number(r.DaysLeft):null;
-    const daysSinceSub=r._tsDate?Math.round((TODAY-r._tsDate)/86400000):0;
-    const isOverdue=r['Action Status']==='Pending Action'&&daysSinceSub>=14;
-    const isSel=selectedIndices.has(r._idx);
-    return`<tr class="${isOverdue?'overdue':''} ${isSel?'selected':''}" onclick="rowClick(event,${r._idx})">
-      <td onclick="event.stopPropagation()"><input type="checkbox" class="row-chk" data-idx="${r._idx}" onchange="onRowCheck(${r._idx},this.checked)" ${isSel?'checked':''}></td>
-      <td class="mono b">${r.StoreCode||'—'}</td>
-      <td class="b">${r.Store||'—'}</td>
-      <td class="mono">${r.Week||'—'}</td>
-      <td>${r['Sub Month Display']||'—'}</td>
-      <td class="mono" style="font-size:10px">${r.Article||'—'}</td>
-      <td>${r.Description||'—'}${isOverdue?` <span class="overdue-tag">⚠ Overdue</span>`:''}</td>
-      <td>${r.Department||'—'}</td>
-      <td class="mono">${r.Stock||'—'}</td>
-      <td class="mono">${r.ExpiryDate||'—'}</td>
-      <td>${daysBar(dlNum)}</td>
-      <td><span class="badge ${bc}">${r['Expiry Risk Bucket']||'—'}</span></td>
-      <td>${r['Required Action']||'—'}</td>
-      <td><span class="badge ${sc}">${r['Action Status']||'—'}</span></td>
-      <td>${r['Action Taken']||'—'}</td>
-    </tr>`;
-  }).join('');
-  document.getElementById('b-ac').textContent=filtered.length+' items';
-  updateToolbar();
+// ── CAT ──
+function setCat(cat,el){
+  activeCat=cat;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(curSec==='home') showSection('movies',document.getElementById('navMovies'));
+  else showSection(curSec,document.querySelector('.nav-links a.active'));
 }
 
-// ══ SEARCH ══
-function onSearch(){
-  if(curPage==='actions') renderActions();
+// ── LANG SECTION ──
+const LANG_NAMES={en:'English',hi:'Hindi',ta:'Tamil',te:'Telugu',ml:'Malayalam',kn:'Kannada',ko:'Korean',ja:'Japanese',es:'Spanish',fr:'French',ar:'Arabic',zh:'Chinese',pt:'Portuguese',de:'German',ru:'Russian',th:'Thai'};
+async function langSection(lang){
+  curSec='lang';
+  document.getElementById('homeSections').style.display='none';
+  document.getElementById('searchSection').style.display='none';
+  document.getElementById('gridSection').style.display='';
+  document.getElementById('gridTitle').innerHTML=`🌍 <span>${LANG_NAMES[lang]||lang}</span>`;
+  document.getElementById('mainGrid').innerHTML=skels(12);
+  window.scrollTo({top:0,behavior:'smooth'});
+  const[mv,tv]=await Promise.all([
+    tmdb('/discover/movie',{with_original_language:lang,sort_by:'popularity.desc'}),
+    tmdb('/discover/tv',{with_original_language:lang,sort_by:'popularity.desc'})
+  ]);
+  const all=[...(mv.results||[]).map(r=>({...r,_t:'movie'})),...(tv.results||[]).map(r=>({...r,_t:'tv'}))];
+  document.getElementById('gridCount').textContent=all.length+' titles';
+  document.getElementById('mainGrid').innerHTML=all.length?all.map(r=>card(r,r._t)).join(''):'<div class="empty">No results</div>';
+  document.getElementById('loadMoreBtn').style.display='none';
 }
 
-// ══ ROW SELECTION ══
-function rowClick(event,idx){
-  if(event.target.tagName==='INPUT')return;
-  // Click on row body → show popup
-  showPop(idx);
-}
-function onRowCheck(idx,checked){
-  if(checked)selectedIndices.add(idx);else selectedIndices.delete(idx);
-  const row=document.querySelector(`[data-idx="${idx}"]`)?.closest('tr');
-  if(row){if(checked)row.classList.add('selected');else row.classList.remove('selected');}
-  updateToolbar();
-}
-function toggleAll(masterChk){
-  const chks=document.querySelectorAll('.row-chk');
-  chks.forEach(chk=>{
-    chk.checked=masterChk.checked;
-    const idx=+chk.dataset.idx;
-    if(masterChk.checked)selectedIndices.add(idx);else selectedIndices.delete(idx);
-    const row=chk.closest('tr');
-    if(row){if(masterChk.checked)row.classList.add('selected');else row.classList.remove('selected');}
-  });
-  updateToolbar();
-}
-function selectAllVisible(){
-  const chks=document.querySelectorAll('.row-chk');
-  chks.forEach(chk=>{chk.checked=true;selectedIndices.add(+chk.dataset.idx);chk.closest('tr')?.classList.add('selected');});
-  updateToolbar();
-}
-function clearSelection(){
-  selectedIndices.clear();
-  document.querySelectorAll('.row-chk').forEach(c=>{c.checked=false;c.closest('tr')?.classList.remove('selected');});
-  const mChk=document.getElementById('chk-all');if(mChk)mChk.checked=false;
-  updateToolbar();
-}
-function updateToolbar(){
-  const tb=document.getElementById('action-toolbar');
-  if(selectedIndices.size>0){
-    tb.classList.add('visible');
-    document.getElementById('sel-count').textContent=selectedIndices.size;
-  }else{tb.classList.remove('visible');}
-}
-
-// ══ CONFIRM & EXECUTE ACTION ══
-function confirmAction(action){
-  if(!selectedIndices.size){toast('No rows selected','error');return;}
-  pendingAction=action;
-  const items=proc.filter(r=>selectedIndices.has(r._idx));
-  document.getElementById('confirm-title').textContent=`Confirm: ${action}`;
-  document.getElementById('confirm-desc').textContent=`Apply "${action}" to ${items.length} selected item${items.length>1?'s':''}? This will be written to the BuyerActionLedgers sheet.`;
-  document.getElementById('confirm-items').innerHTML=items.map(r=>`<div class="action-confirm-item">${r.Article||'—'} · ${r.Description||''} · ${r.StoreCode||''} · ${r.Week||''}</div>`).join('');
-  document.getElementById('confirm-overlay').classList.add('open');
-}
-
-async function executeAction(){
-  const items=proc.filter(r=>selectedIndices.has(r._idx));
-  document.getElementById('confirm-overlay').classList.remove('open');
-  document.getElementById('confirm-ok-btn').textContent='Saving…';
-
-  let successCount=0;
-  for(const r of items){
-    try{
-      await fetch(LEDGER_POST,{
-        method:'POST',
-        mode:'no-cors',
-        headers:{'Content-Type':'text/plain'},
-        body:JSON.stringify({
-          action:       'writeLedger',
-          Article:      r.Article,
-          StoreCode:    r.StoreCode,
-          Store:        r.Store,
-          Week:         r.Week,
-          SubmissionMonth: r['Submission Month'],
-          ActionTaken:  pendingAction,
-          Comments:     '',
-          Timestamp:    new Date().toISOString()
-        })
-      });
-      // Update local state optimistically
-      r['Action Taken']=pendingAction;
-      r['Action Status']='Action Taken';
-      successCount++;
-    }catch(err){console.error('Write failed for',r.Article,err);}
-  }
-
-  toast(`✓ ${successCount} item${successCount>1?'s':''} marked as "${pendingAction}"`, 'success', 3000);
-  clearSelection();
-  // Refresh data after short delay to sync
-  setTimeout(()=>loadAll(), 1500);
-}
-
-// ══ STORE SUMMARY ══
-function renderStores(){
-  const d=fData('ss');
-  const totalStock=d.reduce((s,r)=>{const v=parseFloat(r.Stock);return s+(isNaN(v)||v<=0?1:v);},0);
-  document.getElementById('kpi-sum').innerHTML=
-    KPI('Total Stock','neu',totalStock)+KPI('<7 Days','red',cnt(d,F.b7))+KPI('7–30 Days','ora',cnt(d,F.b30))+KPI('31–60 Days','yel',cnt(d,F.b60))+KPI('Pending','ora',cnt(d,F.pend))+KPI('Actioned','grn',cnt(d,F.comp));
-
-  // Week comparison
-  const allWeeks=[...new Set(d.map(r=>r.Week).filter(Boolean))].sort();
-  const wkTotals=allWeeks.map(w=>({week:w,count:d.filter(r=>r.Week===w).length}));
-  document.getElementById('b-wk').textContent=allWeeks.length+' weeks';
-  document.getElementById('wk-compare').innerHTML=wkTotals.map((w,i)=>{
-    const prev=wkTotals[i-1];
-    const cls=prev?(w.count>prev.count?'up':w.count<prev.count?'dn':''):'';
-    const trend=prev?(w.count>prev.count?'↑ Rising — worsening':w.count<prev.count?'↓ Falling — improving':'→ Same'):'First week';
-    return`<div class="wk-cell ${cls}"><div class="wk-cell-lbl">${w.week}</div><div class="wk-cell-val">${w.count}</div><div class="wk-cell-trend">${trend}</div></div>`;
-  }).join('');
-
-  // Article by week pivot
-  const awWeeks=[...new Set(d.map(r=>r.Week).filter(Boolean))].sort();
-  const artMap={};
-  d.forEach(r=>{
-    const k=(r.StoreCode||'')+'|'+(r['Submission Month']||'')+'|'+(r.Article||'');
-    if(!artMap[k])artMap[k]={StoreCode:r.StoreCode||'',Store:r.Store||'','Submission Month':r['Sub Month Display']||'',Article:r.Article||'',Description:r.Description||'',ExpiryDate:r.ExpiryDate||'',weeks:{}};
-    const wk=r.Week||'';if(wk){const sv=parseFloat(r.Stock);artMap[k].weeks[wk]=(artMap[k].weeks[wk]||0)+(isNaN(sv)?1:sv);}
-  });
-  const artRows=Object.values(artMap).sort((a,b)=>(a.StoreCode+a.Article).localeCompare(b.StoreCode+b.Article));
-  document.getElementById('b-artweek').textContent=artRows.length+' articles';
-  const fixedCols=['StoreCode','Store','Submission Month','Article','Description','ExpiryDate'];
-  document.getElementById('t-artweek-hdr').innerHTML=fixedCols.map(c=>`<th>${c}</th>`).join('')+awWeeks.map(w=>`<th>${w}</th>`).join('');
-  document.querySelector('#t-artweek tbody').innerHTML=artRows.map(row=>`<tr>`+
-    fixedCols.map(c=>`<td class="${c==='Article'||c==='StoreCode'?'mono':''} ${c==='Article'||c==='StoreCode'||c==='Store'?'b':''}">${row[c]}</td>`).join('')+
-    awWeeks.map(w=>{const v=row.weeks[w];return v!==undefined?`<td class="mono" style="text-align:right;color:var(--green);font-weight:600">${v}</td>`:`<td style="color:var(--t3);text-align:center">—</td>`;}).join('')+
-    `</tr>`).join('');
-
-  // Week breakdown
-  const wm={};
-  d.forEach(r=>{const k=(r.Year||'0')+'|'+(r.MonthNum||'99')+'|'+(r.Week||'');if(!wm[k])wm[k]={disp:r['Sub Month Display']||'',week:r.Week,r7:0,r30:0,r60:0,r90:0,tot:0,p:0,c:0};wm[k].tot++;if(F.b7(r))wm[k].r7++;if(F.b30(r))wm[k].r30++;if(F.b60(r))wm[k].r60++;if(F.b90(r))wm[k].r90++;if(F.pend(r))wm[k].p++;if(F.comp(r))wm[k].c++;});
-  const wArr=Object.values(wm);
-  document.querySelector('#t-sum tbody').innerHTML=wArr.map(w=>`<tr><td class="b">${w.disp||'—'}</td><td class="mono">${w.week||'—'}</td><td style="color:var(--red)" class="mono">${w.r7}</td><td style="color:var(--orange)" class="mono">${w.r30}</td><td style="color:var(--yellow)" class="mono">${w.r60}</td><td style="color:var(--green)" class="mono">${w.r90}</td><td class="mono b">${w.tot}</td><td><span class="badge pend">${w.p}</span></td><td><span class="badge done">${w.c}</span></td></tr>`).join('');
-  document.getElementById('b-sum').textContent=wArr.length+' weeks';
-}
-
-// ══ SUBMISSION STATUS ══
-function renderSubmission(){
-  const ym=gv('sub-ym'),week=gv('sub-week');
-  let d=[...proc];
-  if(ym)d=d.filter(r=>r['Submission Month']===ym);
-  if(week)d=d.filter(r=>r.Week===week);
-
-  // Use allStoreCodes from Stores sheet as the authoritative list
-  const storeList = allStoreCodes.length>0
-    ? allStoreCodes
-    : Object.entries(codeToStore).map(([code,name])=>({code,name}));
-
-  const submittedCodes=new Set(d.map(r=>r.StoreCode).filter(Boolean));
-
-  const submitted=storeList.filter(s=>submittedCodes.has(s.code));
-  const missing=storeList.filter(s=>!submittedCodes.has(s.code));
-
-  document.getElementById('kpi-sub').innerHTML=
-    KPI('Total Stores','neu',storeList.length,'From Stores sheet')+
-    KPI('Submitted','grn',submitted.length)+
-    KPI('Not Submitted','red',missing.length)+
-    KPI('Items in Period','blu',d.length);
-
-  document.getElementById('b-sub').textContent=storeList.length+' stores';
-
-  document.getElementById('sub-grid').innerHTML=[
-    ...submitted.map(s=>{const items=d.filter(r=>r.StoreCode===s.code).length;return`<div class="sub-card ok"><div class="sub-code">${s.code}</div><div class="sub-name">${s.name||codeToStore[s.code]||'—'}</div><div class="sub-status">✓ Submitted</div><div class="sub-items">${items} item${items!==1?'s':''}</div></div>`;}),
-    ...missing.map(s=>`<div class="sub-card miss"><div class="sub-code">${s.code}</div><div class="sub-name">${s.name||codeToStore[s.code]||'—'}</div><div class="sub-status">✕ Not Submitted</div><div class="sub-items">—</div></div>`)
-  ].join('');
-}
-
-// ══ DATA INSPECTOR ══
-function switchInsp(mode,btn){
-  inspMode=mode;
-  document.querySelectorAll('#page-inspector .btn').forEach(b=>b.classList.remove('btn-solid'));
-  btn.classList.add('btn-solid');
-  const titles={e:'ExpiryData_WebRaw',l:'ActionLedger_Raw',p:'Processed (Joined)'};
-  document.getElementById('insp-title').textContent=titles[mode];
-  inspExportType=mode==='e'?'raw-e':mode==='l'?'raw-l':'proc';
-  renderInspector();
-}
-function renderInspector(){
-  const PROC_COLS=['Store','StoreCode','Article','Barcode','Description','Department','Stock','Required Action','Action Status','Action Taken','Comments','Week','Submission Month','Sub Month Display','ExpiryDate','DaysLeft','Expiry Risk Bucket','Year'];
-  const data=inspMode==='e'?rawE:inspMode==='l'?rawL:proc.map(r=>{const o={};PROC_COLS.forEach(c=>o[c]=r[c]??'');return o;});
-  if(!data||!data.length){document.querySelector('#t-insp thead').innerHTML='';document.querySelector('#t-insp tbody').innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--t3);padding:32px">No data loaded</td></tr>';document.getElementById('insp-badge').textContent='0 rows';return;}
-  const cols=Object.keys(data[0]).filter(c=>!c.startsWith('_'));
-  document.querySelector('#t-insp thead').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
-  document.querySelector('#t-insp tbody').innerHTML=data.slice(0,300).map(r=>'<tr>'+cols.map(c=>`<td>${r[c]??''}</td>`).join('')+'</tr>').join('');
-  document.getElementById('insp-badge').textContent=data.length+' rows';
-}
-
-// ══ ITEM POPUP ══
-function showPop(idx){
-  const r=proc.find(p=>p._idx===idx);if(!r)return;
-  const dlNum=r.DaysLeft!==''&&r.DaysLeft!==null?Number(r.DaysLeft):null;
-  const dlc=dlNum!==null?(dlNum<=7?'var(--red)':dlNum<=30?'var(--orange)':dlNum<=60?'var(--yellow)':'var(--green)'):'var(--t3)';
-  const bc=bktCls(r['Expiry Risk Bucket']),sc=r['Action Status']==='Pending Action'?'pend':'done';
-  const daysSinceSub=r._tsDate?Math.round((TODAY-r._tsDate)/86400000):null;
-  document.getElementById('pop-title').textContent=r.Article||'Item Details';
-  document.getElementById('pop-sub').textContent=(r.Description||'')+(r.Barcode?' · '+r.Barcode:'');
-  document.getElementById('pop-body').innerHTML=`
-    <div class="popup-sect"><div class="popup-sect-title">Identity</div>
-    <div class="popup-grid">
-      ${PF('Store',r.Store||'—')}${PF('Store Code',r.StoreCode||'—','mono')}
-      ${PF('Article',r.Article||'—','mono')}${PF('Barcode',r.Barcode||'—','mono')}
-      ${PF('Description',r.Description||'—')}${PF('Department',r.Department||'—')}
-      ${PF('Week',r.Week||'—','mono')}${PF('Submission Month',r['Sub Month Display']||'—')}
-      ${PF('Stock',r.Stock||'—','mono')}${daysSinceSub!==null?PF('Days Since Submitted',daysSinceSub,'mono'):''}
-    </div></div>
-    <div class="popup-sect"><div class="popup-sect-title">Expiry & Risk</div>
-    <div class="popup-grid">
-      ${PF('Expiry Date',r.ExpiryDate||'—','mono')}
-      <div class="pf"><div class="pkey">Days Left</div><div class="pval big" style="color:${dlc}">${dlNum!==null?dlNum:'—'}</div></div>
-      <div class="pf"><div class="pkey">Risk Bucket</div><div class="pval"><span class="badge ${bc}">${r['Expiry Risk Bucket']||'—'}</span></div></div>
-      ${PF('Required Action',r['Required Action']||'—')}
-    </div></div>
-    <div class="popup-sect"><div class="popup-sect-title">Action & Status</div>
-    <div class="popup-grid">
-      <div class="pf"><div class="pkey">Action Status</div><div class="pval"><span class="badge ${sc}">${r['Action Status']||'—'}</span></div></div>
-      ${PF('Action Taken',r['Action Taken']||'(not yet recorded)')}
-      ${PF('Comments',r.Comments||'—')}
-    </div></div>`;
-  document.getElementById('pop-foot').innerHTML=`
-    <button class="btn btn-red" onclick="closePop();confirmAction('RTC Price Change');selectedIndices.add(${r._idx});updateToolbar()">🔴 RTC Price Change</button>
-    <button class="btn" style="background:var(--blue);color:#fff;border-color:var(--blue)" onclick="closePop();confirmAction('Store Transfer');selectedIndices.add(${r._idx});updateToolbar()">🔵 Store Transfer</button>
-    <button class="btn" onclick="closePop();confirmAction('Monitor');selectedIndices.add(${r._idx});updateToolbar()">⬤ Monitor</button>`;
-  document.getElementById('popup-overlay').classList.add('open');
+// ── PLAYER ──
+async function openPlayer(item){
+  curItem={...item};curSeason=1;curEp=1;curSrvIdx=0;
+  const modal=document.getElementById('playerModal');
+  modal.classList.add('open');
   document.body.style.overflow='hidden';
-}
-const PF=(k,v,cls='')=>`<div class="pf"><div class="pkey">${k}</div><div class="pval${cls?' '+cls:''}">${v??'—'}</div></div>`;
-function closePop(e){
-  if(e&&e.target!==document.getElementById('popup-overlay'))return;
-  document.getElementById('popup-overlay').classList.remove('open');
-  document.body.style.overflow='';
-}
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){document.getElementById('popup-overlay').classList.remove('open');document.getElementById('confirm-overlay').classList.remove('open');document.body.style.overflow='';}});
+  document.getElementById('playerTitle').textContent=item.title||'Loading...';
+  document.getElementById('iframeLoader').style.display='flex';
+  document.getElementById('iframeLoader').innerHTML='<div class="spin"></div><span>Resolving stream...</span>';
+  document.getElementById('playerIframe').style.display='none';
 
-// ══ EXCEL EXPORT ══
-const EXP_COLS=['Store','StoreCode','Article','Barcode','Description','Department','Stock','Required Action','Action Status','Action Taken','Comments','Week','Submission Month','Sub Month Display','ExpiryDate','DaysLeft','Expiry Risk Bucket','Year'];
-function exportXL(type){
-  let data,fname;const flat=r=>{const o={};EXP_COLS.forEach(c=>o[c]=r[c]??'');return o;};
-  if(type==='raw-e'){data=rawE;fname='ExpiryData_Raw';}
-  else if(type==='raw-l'){data=rawL;fname='ActionLedger_Raw';}
-  else if(type==='proc'){data=proc.map(flat);fname='Processed';}
-  else if(type==='stores'){data=fData('ss').map(flat);fname='StoreSummary';}
-  else if(type==='actions'){data=fData('ac').map(flat);fname='ActionCenter';}
-  else if(type==='artweek'){
-    const dAW=fData('ss');const allWks=[...new Set(dAW.map(r=>r.Week).filter(Boolean))].sort();
-    const am={};dAW.forEach(r=>{const k=(r.StoreCode||'')+'|'+(r['Submission Month']||'')+'|'+(r.Article||'');if(!am[k])am[k]={StoreCode:r.StoreCode||'',Store:r.Store||'','Submission Month':r['Sub Month Display']||r['Submission Month']||'',Article:r.Article||'',Description:r.Description||'',ExpiryDate:r.ExpiryDate||''};const sv=parseFloat(r.Stock);const wk=r.Week||'';if(wk)am[k][wk+' Stock']=(am[k][wk+' Stock']||0)+(isNaN(sv)?1:sv);});
-    data=Object.values(am);data.forEach(row=>allWks.forEach(w=>{if(!(w+' Stock' in row))row[w+' Stock']='';}));fname='ArticleStockByWeek';
+  // Fetch IMDB id for vidsrc fallback (non-blocking)
+  if(!curItem.imdb && curItem.tmdb){
+    curItem.imdb = await getExternalIds(curItem.tmdb, item.type==='tv'?'tv':'movie');
   }
-  if(!data||!data.length){alert('No data to export.');return;}
-  const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Data');
-  XLSX.writeFile(wb,fname+'_'+new Date().toISOString().slice(0,10)+'.xlsx');
+
+  // Build server buttons
+  document.getElementById('playerServers').innerHTML=SERVERS.map((s,i)=>
+    `<div class="psrv${i===0?' active':''}" id="psrv${i}" onclick="switchSrv(${i})">${s.label}</div>`
+  ).join('');
+
+  // EP picker for TV
+  if(item.type==='tv'){
+    document.getElementById('epWrap').style.display='';
+    buildEpPicker(item.tmdb);
+  } else {
+    document.getElementById('epWrap').style.display='none';
+  }
+
+  loadStream(0);
+
+  // Mobile: auto-prompt SPlayer after brief delay
+  if(isMobile){
+    setTimeout(()=>{ if(curStreamUrl) promptSPlayer(); }, 2500);
+  }
 }
 
-loadAll();
+async function buildEpPicker(tmdbId){
+  const d=await tmdb(`/tv/${tmdbId}`);
+  const total=d.number_of_seasons||1;
+  document.getElementById('seasonBtns').innerHTML=Array.from({length:total},(_,i)=>
+    `<div class="s-btn${i===0?' active':''}" onclick="pickSeason(${i+1},this,${tmdbId})">S${i+1}</div>`
+  ).join('');
+  loadEps(tmdbId,1);
+}
+
+async function loadEps(tmdbId,s){
+  const d=await tmdb(`/tv/${tmdbId}/season/${s}`);
+  const eps=d.episodes||Array.from({length:10},(_,i)=>({episode_number:i+1}));
+  document.getElementById('epBtns').innerHTML=eps.map((e,i)=>
+    `<div class="ep-btn${i===0&&s===curSeason?' active':''}" onclick="pickEp(${e.episode_number},this)">E${e.episode_number}</div>`
+  ).join('');
+}
+
+function pickSeason(s,el,tmdbId){
+  curSeason=s;curEp=1;
+  document.querySelectorAll('.s-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  loadEps(tmdbId,s);
+  loadStream(curSrvIdx);
+}
+
+function pickEp(ep,el){
+  curEp=ep;
+  document.querySelectorAll('.ep-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  loadStream(curSrvIdx);
+}
+
+function loadStream(srvIdx){
+  curSrvIdx=srvIdx;
+  const loader=document.getElementById('iframeLoader');
+  const iframe=document.getElementById('playerIframe');
+  const srv=SERVERS[srvIdx];
+
+  // Check if vidsrc and no imdb
+  if(srv.type==='vidsrc' && !curItem.imdb){
+    loader.style.display='flex';
+    loader.innerHTML='<div style="text-align:center;color:var(--muted)"><div style="font-size:26px;margin-bottom:8px">😕</div><div style="font-size:13px">No IMDB ID for this title</div><div style="font-size:11px;margin-top:4px">Try VidLink server instead</div></div>';
+    return;
+  }
+
+  const url=buildStreamUrl(srv,curItem.tmdb,curItem.imdb,curItem.type,curSeason,curEp);
+  if(!url){
+    loader.style.display='flex';
+    loader.innerHTML='<div style="color:var(--muted);font-size:13px">Server error — try another server</div>';
+    return;
+  }
+
+  curStreamUrl=url;
+  loader.style.display='flex';
+  loader.innerHTML=`<div class="spin"></div><span>Loading from ${srv.label}...</span>`;
+  iframe.style.display='none';
+  iframe.src='';
+  iframe.onload=()=>{ loader.style.display='none'; iframe.style.display='block'; };
+  iframe.onerror=()=>{ loader.innerHTML='<div style="color:var(--muted);font-size:13px">Server error — try another</div>'; };
+  iframe.src=url;
+}
+
+function switchSrv(idx){
+  document.querySelectorAll('.psrv').forEach(b=>b.classList.remove('active'));
+  document.getElementById('psrv'+idx)?.classList.add('active');
+  loadStream(idx);
+}
+
+function closePlayer(){
+  document.getElementById('playerModal').classList.remove('open','fullscreen-mode');
+  document.getElementById('playerIframe').src='';
+  document.body.style.overflow='';
+  isFullscreen=false;
+  curStreamUrl='';
+}
+
+// ── FULLSCREEN ──
+function toggleFullscreen(){
+  const modal=document.getElementById('playerModal');
+  const box=document.getElementById('iframeBox');
+  isFullscreen=!isFullscreen;
+  if(isFullscreen){
+    modal.classList.add('fullscreen-mode');
+    // Try native fullscreen on iframe box
+    if(box.requestFullscreen) box.requestFullscreen().catch(()=>{});
+    else if(box.webkitRequestFullscreen) box.webkitRequestFullscreen();
+  } else {
+    modal.classList.remove('fullscreen-mode');
+    if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
+    else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+  }
+}
+
+// Handle native fullscreen exit (Esc key)
+document.addEventListener('fullscreenchange',()=>{
+  if(!document.fullscreenElement && isFullscreen){
+    document.getElementById('playerModal').classList.remove('fullscreen-mode');
+    isFullscreen=false;
+  }
+});
+
+// ── SPLAYER ──
+function openSPlayer(){
+  // Try to open SPlayer via intent
+  const intent='intent://splayer.media/#Intent;scheme=splayer;package=xyz.surya.splayer;end';
+  const playstore='https://play.google.com/store/apps/details?id=xyz.surya.splayer';
+  if(isMobile){
+    window.location.href=intent;
+    setTimeout(()=>{ window.open(playstore,'_blank'); },1500);
+  } else {
+    toast('📱 Search "SPlayer" on Google Play Store or APKPure');
+  }
+}
+
+function openInSPlayer(){
+  if(!curStreamUrl){ toast('Wait for stream to load first'); return; }
+  // SPlayer custom URI with stream URL
+  const uri=`splayer://play?url=${encodeURIComponent(curStreamUrl)}&title=${encodeURIComponent(curItem.title||'Stream')}`;
+  window.location.href=uri;
+  setTimeout(()=>{
+    // Fallback: try vlc/mx player
+    const mx=`intent:${curStreamUrl}#Intent;package=com.mxtech.videoplayer.ad;S.title=${encodeURIComponent(curItem.title||'')};end`;
+    toast('Opening in SPlayer... If not installed, get it from Play Store');
+  },1000);
+}
+
+function promptSPlayer(){
+  // Show SPlayer button highlight on mobile
+  const btn=document.getElementById('splayerBtn');
+  if(btn){ btn.style.animation='blink .6s ease 3'; }
+}
+
+// ── INFO MODAL ──
+async function openInfoById(tmdbId,type){
+  const d=await tmdb(`/${type}/${tmdbId}`,{append_to_response:'external_ids'});
+  const title=d.title||d.name||'';
+  const year=(d.release_date||d.first_air_date||'').slice(0,4);
+  const rating=d.vote_average?d.vote_average.toFixed(1):'—';
+  const desc=d.overview||'';
+  const bg=d.backdrop_path?IMG+'w780'+d.backdrop_path:'';
+  const imdb=d.imdb_id||d.external_ids?.imdb_id||'';
+  const item={tmdb:tmdbId,imdb,title,type,rating,year,desc};
+
+  document.getElementById('infoTitle').textContent=title;
+  document.getElementById('infoImg').src=bg||(d.poster_path?IMG+'w780'+d.poster_path:'');
+  document.getElementById('infoMeta').innerHTML=`
+    <span class="rating">★ ${rating}</span><span class="dot"></span>
+    <span>${year}</span><span class="dot"></span>
+    <span class="qual">HD</span><span class="ltag">${type.toUpperCase()}</span>
+    ${d.runtime?`<span class="ltag">${d.runtime}m</span>`:''}
+    ${d.number_of_seasons?`<span class="ltag">${d.number_of_seasons} Seasons</span>`:''}
+  `;
+  document.getElementById('infoDesc').textContent=desc;
+  const iSafe=JSON.stringify(item).replace(/"/g,'&quot;');
+  document.getElementById('infoBtns').innerHTML=`
+    <button class="btn-play" onclick="openPlayer(${iSafe});closeInfo()"><div class="ptri"></div> Watch Now</button>
+    <button class="btn-more" onclick="toast('Added to Watchlist ✓')">+ Watchlist</button>
+  `;
+  document.getElementById('srvGrid').innerHTML=SERVERS.map((s,i)=>`
+    <div class="srv-btn" onclick="openPlayer(${iSafe});closeInfo();setTimeout(()=>switchSrv(${i}),800)">
+      <span>${s.label}</span><span class="srv-sub">${s.type==='vidlink'||s.type==='vidlink2'?'Low Ads':'VidSrc'}</span>
+    </div>`
+  ).join('');
+  document.getElementById('infoModal').classList.add('open');
+}
+
+function closeInfo(){ document.getElementById('infoModal').classList.remove('open'); }
+
+// ── UTILS ──
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){ closePlayer(); closeInfo(); }
+  if(e.key==='f'||e.key==='F'){ if(document.getElementById('playerModal').classList.contains('open')) toggleFullscreen(); }
+});
+
+initHome();
 </script>
 </body>
 </html>
