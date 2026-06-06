@@ -498,7 +498,7 @@ const S = {
   streamUrl:'', imdbCache:{},
 };
 
-/* ═══ POPUP BLOCKER ═══ */
+/* ═══ POPUP & REDIRECT BLOCKER ═══ */
 (function(){
   // Block window.open popups from embeds
   const _open = window.open.bind(window);
@@ -507,6 +507,57 @@ const S = {
     console.log('[PopupBlock] Blocked:', url);
     return null;
   };
+
+  // Block embed scripts from hijacking parent location
+  const _assign = Object.getOwnPropertyDescriptor(Location.prototype,'assign')?.set;
+  const _replace = Object.getOwnPropertyDescriptor(Location.prototype,'replace')?.set;
+  const _href = Object.getOwnPropertyDescriptor(Location.prototype,'href')?.set;
+  if(_assign) Object.defineProperty(Location.prototype,'assign',{set(v){console.log('[Block] location.assign');}});
+  if(_replace) Object.defineProperty(Location.prototype,'replace',{set(v){console.log('[Block] location.replace');}});
+  if(_href) Object.defineProperty(Location.prototype,'href',{set(v){
+    // Allow our own nav, block external redirects
+    if(typeof v==='string' && (v.startsWith('/') || v.includes(location.hostname))) return _href.call(this,v);
+    console.log('[Block] location.href redirect:', v);
+  }});
+
+  // Kill click-jacking overlay divs injected by embeds
+  new MutationObserver(muts => {
+    muts.forEach(m => {
+      m.addedNodes.forEach(n => {
+        if(n.nodeType !== 1) return;
+        // Remove transparent fixed/absolute overlays that aren't ours
+        if(n.tagName === 'DIV' || n.tagName === 'A' || n.tagName === 'IFRAME'){
+          const s = window.getComputedStyle?.(n);
+          if(!s) return;
+          const pos = s.position;
+          const z = parseInt(s.zIndex || 0);
+          const op = parseFloat(s.opacity || 1);
+          const isOurs = ['pm','im','eps','toast','nav','msb'].some(id =>
+            n.id===id || n.closest?.('#'+id)
+          );
+          if(!isOurs && (pos==='fixed'||pos==='absolute') && z>100 && op<0.15){
+            n.remove();
+          }
+        }
+        // Remove injected scripts from embed domains
+        if(n.tagName === 'SCRIPT' && n.src && !n.src.includes(location.hostname)){
+          // Only block known ad/tracker domains
+          const bad = ['pemsrv','usrpubtrk','yandex','clarity','histats','llvpn','googlesyndication','doubleclick','adservice'];
+          if(bad.some(d => n.src.includes(d))) n.remove();
+        }
+      });
+    });
+  }).observe(document.documentElement, {childList:true, subtree:true});
+
+  // Last-resort: prevent unload while player is open
+  window.addEventListener('beforeunload', e => {
+    if(document.getElementById('pm').classList.contains('on')){
+      // Only block if triggered by embed (not our own nav)
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+})();
 
   // Kill click-jacking overlay divs added dynamically
   new MutationObserver(muts => {
