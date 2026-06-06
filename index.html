@@ -902,63 +902,86 @@ function switchProv(idx, el) {
    Even if it breaks sandbox, it can only redirect the dead proxy.
    ═══════════════════════════════════════════ */
 let loadTimeout;
+
 function loadFrame(url, label) {
   S.streamUrl = url;
+
   const load = document.getElementById('pload');
-  const fr   = document.getElementById('pif');
+  const fr = document.getElementById('pif');
+
   hideBanner();
+
   load.classList.remove('gone');
-  document.getElementById('ploadt').textContent = `Loading from ${label||'server'}...`;
+  document.getElementById('ploadt').textContent =
+    `Loading from ${label || 'server'}...`;
+
   fr.style.opacity = '0';
 
-  // Wipe previous state completely
+  // Clear previous iframe state
   fr.srcdoc = '';
-  fr.removeAttribute('srcdoc');
   fr.removeAttribute('src');
 
   clearTimeout(loadTimeout);
+
   setTimeout(() => {
-    // Escape URL for safe injection into HTML string
-    const safeUrl = url
+    const safeUrl = String(url)
       .replace(/&/g, '&amp;')
       .replace(/"/g, '&quot;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
 
-    // Null-origin proxy wrapper — embed cannot see parent page
-    fr.srcdoc = `<!DOCTYPE html>
-<html><head><meta charset="utf-8">
-<style>*{margin:0;padding:0;border:0;overflow:hidden}
-html,body{width:100%;height:100%;background:#000}
-iframe{width:100%;height:100%;border:none;display:block}</style>
-</head><body>
-<iframe src="${safeUrl}"
-  sandbox="allow-scripts allow-forms"
+    fr.srcdoc = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+*{
+  margin:0;
+  padding:0;
+  border:0;
+  overflow:hidden;
+}
+html,body{
+  width:100%;
+  height:100%;
+  background:#000;
+}
+iframe{
+  width:100%;
+  height:100%;
+  border:none;
+  display:block;
+}
+</style>
+</head>
+<body>
+
+<iframe
+  src="${safeUrl}"
   allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-  referrerpolicy="no-referrer"></iframe>
+  referrerpolicy="no-referrer">
+</iframe>
+
 <script>
-// Dead-end traps inside the proxy
-window.open = function(){ return null; };
-window.print = function(){};
-try {
-  Object.defineProperty(window, 'location', {
-    configurable: false,
-    get: function(){ return location; },
-    set: function(){}
-  });
-} catch(e){}
-window.addEventListener('beforeunload', function(e){
+window.open = function () {
+  return null;
+};
+
+window.addEventListener('beforeunload', function (e) {
   e.preventDefault();
   e.returnValue = '';
 });
 <\/script>
-</body></html>`;
 
-    // srcdoc loads instantly; inner iframe needs time to render
+</body>
+</html>`;
+
     loadTimeout = setTimeout(() => {
       load.classList.add('gone');
       fr.style.opacity = '1';
     }, 2500);
+
   }, 60);
 }
 
