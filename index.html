@@ -949,6 +949,12 @@ function switchProv(idx, el) {
 
 /* FIX: loadFrame — no sandbox; use load/error events + timeout fallback */
 let loadTimeout;
+/* FIX: loadFrame — srcdoc dual-layer isolation
+   Layer 1: srcdoc wrapper has null origin (embed can't see your page)
+   Layer 2: inner iframe has sandbox without navigation/popout permissions
+   Even if embed calls window.top.location, it only redirects the dead srcdoc layer.
+*/
+let loadTimeout;
 function loadFrame(url, label) {
   S.streamUrl = url;
   const load = document.getElementById('pload');
@@ -957,27 +963,44 @@ function loadFrame(url, label) {
   load.classList.remove('gone');
   document.getElementById('ploadt').textContent = `Loading from ${label||'server'}...`;
   fr.style.opacity = '0';
-  fr.src = '';
+  // Clear previous state fully
+  fr.srcdoc = '';
+  fr.removeAttribute('srcdoc');
+  fr.removeAttribute('src');
 
   clearTimeout(loadTimeout);
   setTimeout(() => {
-    fr.onload = () => {
-      load.classList.add('gone');
-      fr.style.opacity = '1';
-      clearTimeout(loadTimeout);
-    };
-    fr.onerror = () => {
-      load.classList.add('gone');
-      fr.style.opacity = '1';
-      showBanner('Server unavailable');
-      clearTimeout(loadTimeout);
-    };
-    fr.src = url;
-    // Fallback: if no load event in 15s, hide spinner (some embeds never fire onload)
+    // Escape the embed URL for safe injection into srcdoc HTML
+    const safe = url.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // Build a null-origin proxy page that wraps the real embed
+    fr.srcdoc = `<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>*{margin:0;padding:0;border:0;overflow:hidden}
+html,body{width:100%;height:100%;background:#000}
+iframe{width:100%;height:100%;border:none;display:block}</style>
+</head><body>
+<iframe src="${safe}"
+  sandbox="allow-scripts allow-forms"
+  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+  referrerpolicy="no-referrer"></iframe>
+<script>
+// Dead-end traps — if anything leaks past sandbox, it dies here
+window.open=function(){return null};
+window.print=function(){};
+try{Object.defineProperty(window,'location',{
+  configurable:false,get:function(){return location},set:function(){}
+})}catch(e){}
+window.addEventListener('beforeunload',function(e){e.preventDefault();e.returnValue=''});
+<\/script>
+</body></html>`;
+
+    // srcdoc itself loads instantly, but inner iframe needs time
+    // Use shorter timeout since we can't detect inner iframe load across origins
     loadTimeout = setTimeout(() => {
       load.classList.add('gone');
       fr.style.opacity = '1';
-    }, 15000);
+    }, 2500);
   }, 60);
 }
 
@@ -998,7 +1021,10 @@ function closePlayer() {
   document.getElementById('pm').classList.remove('on');
   clearTimeout(loadTimeout);
   const fr = document.getElementById('pif');
-  fr.src = '';
+  // Kill srcdoc completely — removes the null-origin layer
+  fr.srcdoc = '';
+  fr.removeAttribute('srcdoc');
+  fr.removeAttribute('src');
   fr.style.opacity = '0';
   S.streamUrl = '';
   const load = document.getElementById('pload');
@@ -1010,11 +1036,8 @@ function closePlayer() {
 
 function goFS() {
   const box = document.getElementById('pframe');
-  const fr  = document.getElementById('pif');
-  const fn  = box.requestFullscreen || box.webkitRequestFullscreen || box.mozRequestFullScreen;
-  const fn2 = fr.requestFullscreen  || fr.webkitRequestFullscreen;
-  if(fn) fn.call(box).catch(() => { if(fn2) fn2.call(fr).catch(()=>{}); });
-  else if(fn2) fn2.call(fr).catch(()=>{});
+  const fn = box.requestFullscreen || box.webkitRequestFullscreen || box.mozRequestFullScreen;
+  if(fn) fn.call(box).catch(()=>{});
 }
 
 /* ═══ EXTERNAL PLAYER ═══ */
