@@ -410,10 +410,10 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
       - referrerpolicy: no-referrer
       - Popup blocker in JS (window.open override below)
     -->
-    <<iframe id="pif"
+    <iframe id="pif"
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
       referrerpolicy="no-referrer"
-    ></iframe>
+    </iframe>
     <div class="perrbanner" id="perrbanner">
       <span id="perrmsg">Stream error — try next server</span>
       <button class="errnxt" onclick="nextServer()">Try Next ▶</button>
@@ -522,60 +522,31 @@ const S = {
 
   // Kill click-jacking overlay divs injected by embeds
   new MutationObserver(muts => {
-    muts.forEach(m => {
-      m.addedNodes.forEach(n => {
-        if(n.nodeType !== 1) return;
-        // Remove transparent fixed/absolute overlays that aren't ours
-        if(n.tagName === 'DIV' || n.tagName === 'A' || n.tagName === 'IFRAME'){
-          const s = window.getComputedStyle?.(n);
-          if(!s) return;
-          const pos = s.position;
-          const z = parseInt(s.zIndex || 0);
-          const op = parseFloat(s.opacity || 1);
-          const isOurs = ['pm','im','eps','toast','nav','msb'].some(id =>
-            n.id===id || n.closest?.('#'+id)
-          );
-          if(!isOurs && (pos==='fixed'||pos==='absolute') && z>100 && op<0.15){
-            n.remove();
-          }
-        }
-        // Remove injected scripts from embed domains
-        if(n.tagName === 'SCRIPT' && n.src && !n.src.includes(location.hostname)){
-          // Only block known ad/tracker domains
-          const bad = ['pemsrv','usrpubtrk','yandex','clarity','histats','llvpn','googlesyndication','doubleclick','adservice'];
-          if(bad.some(d => n.src.includes(d))) n.remove();
-        }
-      });
-    });
-  }).observe(document.documentElement, {childList:true, subtree:true});
+  muts.forEach(m => {
+    m.addedNodes.forEach(n => {
+      if (n.nodeType !== 1) return;
 
-  // Last-resort: prevent unload while player is open
-  window.addEventListener('beforeunload', e => {
-    if(document.getElementById('pm').classList.contains('on')){
-      // Only block if triggered by embed (not our own nav)
-      e.preventDefault();
-      e.returnValue = '';
-    }
+      const s = window.getComputedStyle?.(n);
+      if (!s) return;
+
+      const pos = s.position;
+      const z = parseInt(s.zIndex || 0);
+
+      if ((pos === 'fixed' || pos === 'absolute') && z > 100 && !n.id) {
+        const ours = ['pm','im','eps','toast','nav'].some(id =>
+          n.id === id || n.closest?.('#' + id)
+        );
+
+        if (!ours) {
+          n.remove();
+        }
+      }
+    });
   });
-})();
-
-  // Kill click-jacking overlay divs added dynamically
-  new MutationObserver(muts => {
-    muts.forEach(m => {
-      m.addedNodes.forEach(n => {
-        if(n.nodeType !== 1) return;
-        const s = window.getComputedStyle?.(n);
-        if(!s) return;
-        const pos = s.position;
-        const z = parseInt(s.zIndex || 0);
-        if((pos==='fixed'||pos==='absolute') && z>100 && !n.id){
-          const ours = ['pm','im','eps','toast','nav'].some(id => n.id===id || n.closest?.('#'+id));
-          if(!ours){ n.remove(); 
-        }
-      });
-    });
-  }).observe(document.body, {childList:true, subtree:true});
-})();
+}).observe(document.body, {
+  childList: true,
+  subtree: true
+});
 
 /* ═══ WORKER API ═══ */
 async function api(path, params={}) {
