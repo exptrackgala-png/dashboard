@@ -570,7 +570,7 @@ const S = {
         const z = parseInt(s.zIndex || 0);
         if((pos==='fixed'||pos==='absolute') && z>100 && !n.id){
           const ours = ['pm','im','eps','toast','nav'].some(id => n.id===id || n.closest?.('#'+id));
-          if(!ours){ n.remove(); }
+          if(!ours){ n.remove(); 
         }
       });
     });
