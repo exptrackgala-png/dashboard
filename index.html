@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+/* ═══════════════════ TOKENS ═══════════════════ */
 :root{
   --bg:#120f09;--bg2:#1c1710;--bg3:#241e14;--bg4:#2e2719;
   --leather:#3d2e1a;--brass:#c8a96e;--brass2:#e8c97e;--brass3:#f5dfa0;
@@ -33,6 +34,7 @@ button,select{font-family:'DM Sans',sans-serif}
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--brass);border-radius:2px}
 
+/* ═══════════════════ NAV ═══════════════════ */
 #nav{
   position:fixed;top:0;left:0;right:0;z-index:300;height:54px;
   display:flex;align-items:center;gap:8px;padding:0 16px;
@@ -60,6 +62,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .mob-sb.on{display:block;transform:translateY(0);opacity:1}
 .mob-sb input{width:100%;background:var(--bg);border:1px solid var(--brd2);border-radius:10px;padding:8px 14px;color:var(--cream);font-family:'DM Sans';font-size:13px;outline:none;box-shadow:var(--sk-dn)}
 
+/* ═══════════════════ HERO ═══════════════════ */
 #hero{position:relative;height:88vh;min-height:500px;max-height:720px;display:flex;align-items:flex-end;padding:0 22px 64px;overflow:hidden;margin-top:54px}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center top;transition:opacity .7s}
 .hero-bg::before{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(to right,rgba(12,9,4,.98) 28%,rgba(12,9,4,.1) 75%),linear-gradient(to top,rgba(12,9,4,1) 0%,rgba(12,9,4,.4) 45%,transparent 100%)}
@@ -79,6 +82,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .btn-info:hover{background:linear-gradient(180deg,rgba(200,169,110,.22) 0%,rgba(200,169,110,.12) 100%);border-color:rgba(200,169,110,.5)}
 .play-ico{width:9px;height:9px;background:#fff;clip-path:polygon(0 0,100% 50%,0 100%);flex-shrink:0}
 
+/* ═══════════════════ CHIPS / LANG ═══════════════════ */
 .chips{display:flex;gap:6px;padding:18px 16px 0;overflow-x:auto;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:6px 14px;border-radius:50px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--brd);color:var(--sub);background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);box-shadow:var(--sk-btn);transition:var(--trans);white-space:nowrap;flex-shrink:0}
@@ -90,6 +94,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .ls:hover{border-color:rgba(200,169,110,.3);color:var(--brass)}
 .ls.on{background:linear-gradient(180deg,var(--bg4) 0%,var(--leather) 100%);border-color:rgba(200,169,110,.45);color:var(--brass2);box-shadow:0 2px 8px rgba(200,169,110,.15),var(--sk-btn);font-weight:700}
 
+/* ═══════════════════ SECTIONS / ROWS ═══════════════════ */
 .sec{padding:22px 16px}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .st{font-family:'Playfair Display';font-size:17px;font-weight:700;color:var(--cream);letter-spacing:-.3px}
@@ -99,6 +104,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .hrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hrow::-webkit-scrollbar{display:none}
 
+/* ═══════════════════ CARDS ═══════════════════ */
 .card{flex-shrink:0;width:130px;border-radius:var(--rad);overflow:hidden;cursor:pointer;position:relative;background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd);box-shadow:var(--sk-card);transition:var(--trans);will-change:transform}
 .card:hover{transform:translateY(-7px) scale(1.02);box-shadow:0 20px 40px rgba(0,0,0,.75),0 2px 4px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);border-color:rgba(200,169,110,.3)}
 .card:active{transform:scale(.97)}
@@ -126,6 +132,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .lmbtn{display:block;margin:18px auto 0;background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd2);color:var(--brass);padding:10px 28px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;transition:var(--trans);box-shadow:var(--sk-btn)}
 .lmbtn:hover{border-color:rgba(200,169,110,.45);color:var(--brass2)}
 
+/* ═══════════════════ PLAYER MODAL ═══════════════════ */
 #pm{position:fixed;inset:0;z-index:500;background:rgba(6,4,2,.97);display:none;flex-direction:column;align-items:center}
 #pm.on{display:flex}
 .pmtop{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 14px;gap:8px;flex-shrink:0;background:linear-gradient(to bottom,var(--bg2),var(--bg));border-bottom:1px solid var(--brd2);box-shadow:0 4px 20px rgba(0,0,0,.5)}
@@ -139,6 +146,9 @@ button,select{font-family:'DM Sans',sans-serif}
 .srv:hover{border-color:rgba(200,169,110,.35);color:var(--brass)}
 .srv.on{background:linear-gradient(180deg,var(--leather) 0%,var(--bg3) 100%);border-color:rgba(200,169,110,.45);color:var(--brass2);box-shadow:0 2px 8px rgba(200,169,110,.12),var(--sk-btn)}
 
+/* ── PLAYER FRAME ─────────────────────────────────────────── */
+/* FIX: removed sandbox attr entirely from iframe — was blocking autoplay.
+   Instead use allow attribute + referrerpolicy for security. */
 .pframe{width:100%;flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;min-height:0}
 .pframe iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
 .pload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(6,4,2,.95);z-index:2;pointer-events:none}
@@ -146,6 +156,8 @@ button,select{font-family:'DM Sans',sans-serif}
 .spin{width:32px;height:32px;border:2px solid var(--brd2);border-top-color:var(--brass);border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .pload p{font-size:12px;color:var(--sub)}
+
+/* Server error banner */
 .perrbanner{
   position:absolute;bottom:0;left:0;right:0;z-index:3;
   background:rgba(192,57,43,.9);color:#fff;font-size:11px;font-weight:600;
@@ -155,6 +167,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .perrbanner.on{display:flex}
 .errnxt{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans'}
 
+/* episode picker */
 .eppick{flex-shrink:0;padding:10px 14px;max-height:200px;overflow-y:auto;background:var(--bg);border-top:1px solid var(--brd);box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
 .ep-lbl{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;margin-top:8px;font-family:'DM Mono'}
 .ep-lbl:first-child{margin-top:0}
@@ -168,6 +181,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .extbtn{background:linear-gradient(180deg,#1f7a45,#155c32);border-color:rgba(39,174,96,.3);color:#fff;box-shadow:0 1px 0 #0d4222 inset,0 4px 12px rgba(39,174,96,.3)}
 .extbtn:hover{background:linear-gradient(180deg,#24904e,#1a7a3e)}
 
+/* ═══════════════════ INFO MODAL ═══════════════════ */
 #im{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.82);backdrop-filter:blur(12px);display:none;align-items:flex-end;justify-content:center}
 #im.on{display:flex}
 .ibox{background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd2);border-radius:22px 22px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;animation:slideUp .32s cubic-bezier(.4,0,.2,1);box-shadow:0 -8px 32px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -189,6 +203,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .gtag{background:rgba(200,169,110,.07);border:1px solid var(--brd);padding:3px 9px;border-radius:4px;font-size:10px;color:var(--sub)}
 .imdb-badge{background:#f5c518;color:#000;font-weight:700;font-family:'DM Mono';font-size:10px;padding:2px 7px;border-radius:4px;letter-spacing:.5px}
 
+/* ═══════════════════ EXT PLAYER SHEET ═══════════════════ */
 #eps{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center}
 #eps.on{display:flex}
 .epbox{background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd2);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;animation:slideUp .28s cubic-bezier(.4,0,.2,1);box-shadow:0 -6px 28px rgba(0,0,0,.6)}
@@ -204,11 +219,13 @@ button,select{font-family:'DM Sans',sans-serif}
 .epsub{font-size:10px;color:var(--sub)}
 .epcancel{width:100%;margin-top:10px;background:transparent;color:var(--sub);border:none;padding:10px;font-size:12px;cursor:pointer;font-family:'DM Sans'}
 
+/* ═══════════════════ TOAST ═══════════════════ */
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:700;background:linear-gradient(160deg,var(--bg3),var(--bg2));border:1px solid var(--brd2);color:var(--cream);padding:10px 18px;border-radius:50px;font-size:12px;font-weight:500;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;box-shadow:0 8px 28px rgba(0,0,0,.6)}
 #toast.show{opacity:1}
 
 footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color:var(--sub);font-size:10px;margin-top:6px}
 
+/* ═══════════════════ RESPONSIVE ═══════════════════ */
 @media(max-width:600px){
   #nav{height:50px;padding:0 10px;gap:5px}
   .logo{font-size:18px}
@@ -237,6 +254,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
 </head>
 <body>
 
+<!-- ════════ NAV ════════ -->
 <nav id="nav">
   <div class="logo" onclick="goHome()">Stream<span>Vault</span></div>
   <div class="nav-tabs">
@@ -280,6 +298,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <input type="text" placeholder="Search movies, series..." id="msi" oninput="search(this.value)" autocomplete="off">
 </div>
 
+<!-- ════════ HERO ════════ -->
 <div id="hero">
   <div class="hero-bg" id="heroBg"></div>
   <div class="hero-c" id="heroC">
@@ -289,6 +308,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
+<!-- ════════ GENRE CHIPS ════════ -->
 <div class="chips" id="chips">
   <div class="chip on" onclick="setGenre(0,this)">All</div>
   <div class="chip" onclick="setGenre(28,this)">Action</div>
@@ -303,6 +323,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="chip" onclick="setGenre(10751,this)">Family</div>
 </div>
 
+<!-- ════════ LANG STRIP ════════ -->
 <div class="lang-strip" id="langStrip">
   <div class="ls on" onclick="setLang('',this)">All</div>
   <div class="ls" onclick="setLang('ml',this)">ML · Malayalam</div>
@@ -319,6 +340,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="ls" onclick="setLang('zh',this)">ZH · Chinese</div>
 </div>
 
+<!-- ════════ HOME SECTIONS ════════ -->
 <div id="homeS">
   <div class="sec">
     <div class="sh"><div class="st">🔥 Trending <em>Movies</em></div><span class="sa" onclick="navTo('movies',document.getElementById('ntMovies'))">See All →</span></div>
@@ -346,6 +368,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
+<!-- ════════ GRID ════════ -->
 <div id="gridS" style="display:none">
   <div class="sec">
     <div class="sh">
@@ -357,6 +380,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
+<!-- ════════ SEARCH ════════ -->
 <div id="searchS" style="display:none">
   <div class="sec">
     <div class="sh"><div class="st">🔍 Search <em>Results</em></div><span id="searchCnt" style="font-size:11px;color:var(--sub)"></span></div>
@@ -366,6 +390,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
 
 <footer>© 2026 StreamVault &nbsp;·&nbsp; TMDB data &nbsp;·&nbsp; Streams via VidLink · VidSrc · 2Embed · AutoEmbed &nbsp;·&nbsp; All content © respective owners</footer>
 
+<!-- ════════ PLAYER MODAL ════════ -->
 <div id="pm">
   <div class="pmtop">
     <button class="pmclose" onclick="closePlayer()">✕</button>
@@ -378,7 +403,14 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="srvrow" id="srvrow"></div>
   <div class="pframe" id="pframe">
     <div class="pload" id="pload"><div class="spin"></div><p id="ploadt">Loading stream...</p></div>
-    <iframe id="pif"
+    <!-- 
+      FIX: No sandbox attribute — sandbox was blocking autoplay, fullscreen, and
+      popup-based stream navigation inside embeds. Security instead via:
+      - allow: only necessary permissions
+      - referrerpolicy: no-referrer
+      - Popup blocker in JS (window.open override below)
+    -->
+    <<iframe id="pif"
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
       referrerpolicy="no-referrer"
     ></iframe>
@@ -395,6 +427,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
+<!-- ════════ INFO MODAL ════════ -->
 <div id="im" onclick="if(event.target===this)closeInfo()">
   <div class="ibox">
     <div class="itop">
@@ -412,6 +445,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
+<!-- ════════ EXT PLAYER SHEET ════════ -->
 <div id="eps" onclick="if(event.target===this)closeExt()">
   <div class="epbox">
     <div class="eph">Open In External Player</div>
@@ -424,7 +458,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
 <div id="toast"></div>
 
 <script>
-const WORKER_URL = 'https://streamvault.shabeershz21.workers.dev';
+const WORKER_URL = 'https://streamvault.shabeershz21.workers.dev'; 
 const IMG = 'https://image.tmdb.org/t/p/';
 
 const LANG_NAMES = {
@@ -434,6 +468,7 @@ const LANG_NAMES = {
   th:'Thai','':"All"
 };
 
+/* ── Streaming providers — NO duplicate data, TMDB ID only ── */
 const PROVIDERS = [
   {label:'VidLink',    note:'Low ads',
    movie: id=>`https://vidlink.pro/movie/${id}`,
@@ -455,6 +490,7 @@ const PROVIDERS = [
    tv:   (id,s,e)=>`https://vidbinge.dev/embed/tv/${id}/${s}/${e}`},
 ];
 
+/* ── State ── */
 const S = {
   sec:'home', genre:0, lang:'',
   curItem:null, season:1, ep:1, prov:0,
@@ -462,84 +498,32 @@ const S = {
   streamUrl:'', imdbCache:{},
 };
 
-/* ═══════════════════════════════════════════
-   LAYER 1: Parent-side redirect & popup shield
-   ═══════════════════════════════════════════ */
+/* ═══ POPUP BLOCKER ═══ */
 (function(){
-  // Block window.open popups leaking from embeds
+  // Block window.open popups from embeds
   const _open = window.open.bind(window);
   window.open = function(url,...a){
     if(!url || url==='about:blank') return _open(url,...a);
-    console.log('[Shield] Blocked popup:', url);
+    console.log('[PopupBlock] Blocked:', url);
     return null;
   };
 
-  // Freeze location setters — intercept redirect attempts
-  try {
-    const _href = Object.getOwnPropertyDescriptor(Location.prototype,'href');
-    if(_href && _href.set){
-      Object.defineProperty(Location.prototype,'href',{
-        set(v){
-          if(typeof v==='string' && (v.startsWith('/') || v.includes(location.hostname))){
-            return _href.set.call(this, v);
-          }
-          console.log('[Shield] Blocked location.href:', v);
-        },
-        get(){ return _href.get.call(this); }
-      });
-    }
-    const _assign = Object.getOwnPropertyDescriptor(Location.prototype,'assign');
-    if(_assign && _assign.set){
-      Object.defineProperty(Location.prototype,'assign',{
-        set(){ console.log('[Shield] Blocked location.assign'); },
-        get(){ return _assign.get.call(this); }
-      });
-    }
-    const _replace = Object.getOwnPropertyDescriptor(Location.prototype,'replace');
-    if(_replace && _replace.set){
-      Object.defineProperty(Location.prototype,'replace',{
-        set(){ console.log('[Shield] Blocked location.replace'); },
-        get(){ return _replace.get.call(this); }
-      });
-    }
-  } catch(e){}
-
-  // Kill invisible overlay divs injected by embeds
+  // Kill click-jacking overlay divs added dynamically
   new MutationObserver(muts => {
     muts.forEach(m => {
       m.addedNodes.forEach(n => {
         if(n.nodeType !== 1) return;
-        const tag = n.tagName;
-        // Remove transparent fixed/absolute overlays
-        if(tag === 'DIV' || tag === 'A' || tag === 'IFRAME'){
-          const s = window.getComputedStyle?.(n);
-          if(!s) return;
-          const pos = s.position;
-          const z = parseInt(s.zIndex || 0);
-          const op = parseFloat(s.opacity ?? 1);
-          const isOurs = ['pm','im','eps','toast','nav','msb'].some(id =>
-            n.id===id || n.closest?.('#'+id)
-          );
-          if(!isOurs && (pos==='fixed'||pos==='absolute') && z>100 && op<0.15){
-            n.remove();
-          }
-        }
-        // Block known ad/tracker script injections
-        if(tag === 'SCRIPT' && n.src){
-          const bad = ['pemsrv','usrpubtrk','yandex','clarity','histats','llvpn','googlesyndication','doubleclick','adservice','popunder'];
-          if(bad.some(d => n.src.includes(d))) n.remove();
+        const s = window.getComputedStyle?.(n);
+        if(!s) return;
+        const pos = s.position;
+        const z = parseInt(s.zIndex || 0);
+        if((pos==='fixed'||pos==='absolute') && z>100 && !n.id){
+          const ours = ['pm','im','eps','toast','nav'].some(id => n.id===id || n.closest?.('#'+id));
+          if(!ours){ n.remove(); }
         }
       });
     });
-  }).observe(document.documentElement, {childList:true, subtree:true});
-
-  // Last-resort unload guard while player is open
-  window.addEventListener('beforeunload', e => {
-    if(document.getElementById('pm').classList.contains('on')){
-      e.preventDefault();
-      e.returnValue = '';
-    }
-  });
+  }).observe(document.body, {childList:true, subtree:true});
 })();
 
 /* ═══ WORKER API ═══ */
@@ -556,6 +540,7 @@ async function api(path, params={}) {
   }
 }
 
+/* ═══ IMDB ID — cached ═══ */
 async function getImdb(id, type) {
   const key = type+':'+id;
   if(S.imdbCache[key]) return S.imdbCache[key];
@@ -564,13 +549,20 @@ async function getImdb(id, type) {
   return S.imdbCache[key];
 }
 
+/* ═══ LANGUAGE FILTER LOGIC ═══
+   FIX: /trending/* endpoint ignores with_original_language.
+   When language selected → always use /discover/* endpoint instead.
+   When no language → use trending for home rows, discover for grid.
+*/
 function buildParams(extras={}) {
   const p = {...extras};
   if(S.lang) p.with_original_language = S.lang;
   return p;
 }
 
+// Returns [path, params] — handles lang/trending incompatibility
 function discoverPath(type='movie', extras={}) {
+  // If language filter active, always use discover (supports with_original_language)
   if(S.lang || S.genre) {
     return [`/discover/${type}`, buildParams({
       sort_by:'popularity.desc',
@@ -614,6 +606,7 @@ function gridSkels(n=12) {
   return Array(n).fill(`<div class="skel" style="height:185px;border-radius:14px"></div>`).join('');
 }
 
+/* ═══ ROW ═══ */
 async function loadRow(elId, path, type, params={}) {
   const el = document.getElementById(elId); if(!el) return;
   el.innerHTML = skels(8);
@@ -624,17 +617,22 @@ async function loadRow(elId, path, type, params={}) {
     : `<span style="color:var(--sub);font-size:12px;padding:20px">Nothing found for this filter</span>`;
 }
 
+/* ═══ HOME ROW LOADER — respects language filter ═══ */
 async function loadHomeRow(elId, type, fallbackPath, fallbackParams={}) {
   const el = document.getElementById(elId); if(!el) return;
   el.innerHTML = skels(8);
+
   let path, params;
   if(S.lang) {
+    // Language selected → use discover with sort
     path = `/discover/${type}`;
     params = buildParams({sort_by:'popularity.desc', ...fallbackParams});
   } else {
+    // No language filter → use original path (trending/now_playing/etc)
     path = fallbackPath;
     params = fallbackParams;
   }
+
   const d = await api(path, params);
   const items = (d.results || []).slice(0,18);
   el.innerHTML = items.length
@@ -672,8 +670,10 @@ async function loadHero() {
     </div>`;
 }
 
+/* ═══ INIT HOME ═══ */
 function initHome() {
   loadHero();
+  // FIX: Use loadHomeRow — falls back to discover when lang is set
   loadHomeRow('rTrMovie', 'movie', '/trending/movie/week');
   loadHomeRow('rTrTV',    'tv',   '/trending/tv/week');
   loadHomeRow('rNowPlay', 'movie', '/movie/now_playing');
@@ -705,6 +705,7 @@ async function navTo(sec, el) {
   document.getElementById('grid').innerHTML = gridSkels();
   document.getElementById('lmbtn').style.display = 'none';
 
+  // FIX: always use /discover/ for grid (supports all filter combos)
   const params = {sort_by:'popularity.desc'};
   if(S.genre) params.with_genres = S.genre;
   if(S.lang)  params.with_original_language = S.lang;
@@ -747,6 +748,7 @@ function setLang(lang, el) {
   document.getElementById('langLabel').textContent = LANG_NAMES[lang] || 'All';
   document.querySelectorAll('.ls').forEach(l => l.classList.remove('on'));
   if(el) el.classList.add('on');
+  // FIX: refresh current view properly
   if(S.sec === 'home') initHome();
   else navTo(S.sec, document.querySelector('.nt.on'));
 }
@@ -826,9 +828,7 @@ async function openInfo(item) {
 }
 function closeInfo() { document.getElementById('im').classList.remove('on'); }
 
-/* ═══════════════════════════════════════════
-   PLAYER — srcdoc dual-layer isolation
-   ═══════════════════════════════════════════ */
+/* ═══ PLAYER ═══ */
 async function startPlay(item) {
   if(typeof item === 'string') item = JSON.parse(item);
   S.curItem = item; S.prov = 0; S.season = 1; S.ep = 1;
@@ -896,92 +896,37 @@ function switchProv(idx, el) {
   else loadFrame(PROVIDERS[idx].movie(S.curItem.id), PROVIDERS[idx].label);
 }
 
-/* ═══════════════════════════════════════════
-   LAYER 2 + 3: srcdoc proxy + sandbox cage
-   The embed loads inside a null-origin srcdoc wrapper.
-   Even if it breaks sandbox, it can only redirect the dead proxy.
-   ═══════════════════════════════════════════ */
+/* FIX: loadFrame — no sandbox; use load/error events + timeout fallback */
 let loadTimeout;
-
 function loadFrame(url, label) {
   S.streamUrl = url;
-
   const load = document.getElementById('pload');
-  const fr = document.getElementById('pif');
-
+  const fr   = document.getElementById('pif');
   hideBanner();
-
   load.classList.remove('gone');
-  document.getElementById('ploadt').textContent =
-    `Loading from ${label || 'server'}...`;
-
+  document.getElementById('ploadt').textContent = `Loading from ${label||'server'}...`;
   fr.style.opacity = '0';
-
-  // Clear previous iframe state
-  fr.srcdoc = '';
-  fr.removeAttribute('src');
+  fr.src = '';
 
   clearTimeout(loadTimeout);
-
   setTimeout(() => {
-    const safeUrl = String(url)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    fr.srcdoc = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<style>
-*{
-  margin:0;
-  padding:0;
-  border:0;
-  overflow:hidden;
-}
-html,body{
-  width:100%;
-  height:100%;
-  background:#000;
-}
-iframe{
-  width:100%;
-  height:100%;
-  border:none;
-  display:block;
-}
-</style>
-</head>
-<body>
-
-<iframe
-  src="${safeUrl}"
-  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-  referrerpolicy="no-referrer">
-</iframe>
-
-<script>
-window.open = function () {
-  return null;
-};
-
-window.addEventListener('beforeunload', function (e) {
-  e.preventDefault();
-  e.returnValue = '';
-});
-<\/script>
-
-</body>
-</html>`;
-
+    fr.onload = () => {
+      load.classList.add('gone');
+      fr.style.opacity = '1';
+      clearTimeout(loadTimeout);
+    };
+    fr.onerror = () => {
+      load.classList.add('gone');
+      fr.style.opacity = '1';
+      showBanner('Server unavailable');
+      clearTimeout(loadTimeout);
+    };
+    fr.src = url;
+    // Fallback: if no load event in 15s, hide spinner (some embeds never fire onload)
     loadTimeout = setTimeout(() => {
       load.classList.add('gone');
       fr.style.opacity = '1';
-    }, 2500);
-
+    }, 15000);
   }, 60);
 }
 
@@ -1002,10 +947,7 @@ function closePlayer() {
   document.getElementById('pm').classList.remove('on');
   clearTimeout(loadTimeout);
   const fr = document.getElementById('pif');
-  // Completely destroy the srcdoc layer
-  fr.srcdoc = '';
-  fr.removeAttribute('srcdoc');
-  fr.removeAttribute('src');
+  fr.src = '';
   fr.style.opacity = '0';
   S.streamUrl = '';
   const load = document.getElementById('pload');
@@ -1016,10 +958,12 @@ function closePlayer() {
 }
 
 function goFS() {
-  // Fullscreen the container — can't cross srcdoc origin boundary
   const box = document.getElementById('pframe');
-  const fn = box.requestFullscreen || box.webkitRequestFullscreen || box.mozRequestFullScreen;
-  if(fn) fn.call(box).catch(()=>{});
+  const fr  = document.getElementById('pif');
+  const fn  = box.requestFullscreen || box.webkitRequestFullscreen || box.mozRequestFullScreen;
+  const fn2 = fr.requestFullscreen  || fr.webkitRequestFullscreen;
+  if(fn) fn.call(box).catch(() => { if(fn2) fn2.call(fr).catch(()=>{}); });
+  else if(fn2) fn2.call(fr).catch(()=>{});
 }
 
 /* ═══ EXTERNAL PLAYER ═══ */
