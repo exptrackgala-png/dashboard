@@ -5,287 +5,148 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#1a1209">
 <title>StreamVault</title>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     POPUP KILLER — LAYER 1: CSP META (browser-enforced, first line)
-     Tells the browser itself: popups and form submissions = blocked.
-     ═══════════════════════════════════════════════════════════════ -->
+<meta http-equiv="Permissions-Policy" content="autoplay=*, encrypted-media=*, fullscreen=*, picture-in-picture=*">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com; frame-src *; media-src *; img-src * data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com data:; connect-src *; form-action 'self';">
 
-<!-- ═══════════════════════════════════════════════════════════════
-     POPUP KILLER — LAYERS 2–6: JS (runs before ANYTHING else loads)
-     Order matters: this script tag must be first, before fonts/css.
-     ═══════════════════════════════════════════════════════════════ -->
 <script>
 (function(){
   'use strict';
-
-  /* ── LAYER 2: window.open nuclear override ─────────────────────
-     Every ad network calls window.open(). We replace it entirely.
-     Return a fake WindowProxy so ad scripts don't throw errors —
-     they believe it worked. Zero tabs ever open. Ever.           */
   var _fakeWin = {
-    closed:false, name:'', opener:null,
-    close:function(){this.closed=true;},
-    focus:function(){}, blur:function(){},
-    postMessage:function(){}, stop:function(){},
-    print:function(){}, alert:function(){},
-    confirm:function(){return false;},
-    prompt:function(){return null;},
-    resizeTo:function(){}, moveTo:function(){},
-    scrollTo:function(){}, scrollBy:function(){},
+    closed:false,name:'',opener:null,
+    close:function(){this.closed=true;},focus:function(){},blur:function(){},
+    postMessage:function(){},stop:function(){},print:function(){},alert:function(){},
+    confirm:function(){return false;},prompt:function(){return null;},
+    resizeTo:function(){},moveTo:function(){},scrollTo:function(){},scrollBy:function(){},
     document:{
-      write:function(){}, writeln:function(){},
-      open:function(){return this;}, close:function(){},
-      getElementById:function(){return null;},
-      querySelector:function(){return null;},
+      write:function(){},writeln:function(){},
+      open:function(){return this;},close:function(){},
+      getElementById:function(){return null;},querySelector:function(){return null;},
       body:{innerHTML:''},
     },
     location:{
-      href:'about:blank', hostname:'', pathname:'/',
-      assign:function(){}, replace:function(){}, reload:function(){},
+      href:'about:blank',hostname:'',pathname:'/',
+      assign:function(){},replace:function(){},reload:function(){},
     },
-    history:{back:function(){}, forward:function(){}, go:function(){}},
-    screen:{width:0, height:0},
+    history:{back:function(){},forward:function(){},go:function(){}},
+    screen:{width:0,height:0},
   };
-  // Make fake window self-referential so scripts don't detect it
-  _fakeWin.window = _fakeWin;
-  _fakeWin.self   = _fakeWin;
-  _fakeWin.top    = _fakeWin;
-  _fakeWin.parent = _fakeWin;
-
-  // Override on every possible handle
-  window.open        = function(){ return _fakeWin; };
-  window.showModalDialog = function(){ return null; };
-
-  // Also kill createObjectURL-based popup tricks
-  var _origCOU = URL.createObjectURL;
-  URL.createObjectURL = function(blob){
-    // Block blob URLs opened as popups (ad trick)
-    var url = _origCOU.call(URL, blob);
-    return url;
-  };
-
-  /* ── LAYER 3: location.href / location.assign hijack guard ─────
-     Ads do: location.href="http://ad.com" or top.location="..."
-     We intercept and block cross-origin navigation attempts.    */
-  (function guardLocation(){
-    // Guard all navigation methods
-    var _proto = window.Location ? window.Location.prototype : null;
-    var _origAssign  = location.assign.bind(location);
-    var _origReplace = location.replace.bind(location);
-
-    function isSameOrigin(url){
-      if(!url || url==='' || url==='about:blank') return true;
-      if(url.startsWith('#') || url.startsWith('javascript:javascript:')) return true;
-      try {
-        var u = new URL(url, location.origin);
-        return u.origin === location.origin;
-      } catch(e){ return false; }
+  _fakeWin.window=_fakeWin;_fakeWin.self=_fakeWin;_fakeWin.top=_fakeWin;_fakeWin.parent=_fakeWin;
+  window.open=function(){return _fakeWin;};
+  window.showModalDialog=function(){return null;};
+  (function(){
+    var _oa=location.assign.bind(location),_or=location.replace.bind(location);
+    function same(u){
+      if(!u||u===''||u==='about:blank')return true;
+      if(u.startsWith('#'))return true;
+      try{return new URL(u,location.origin).origin===location.origin;}catch(e){return false;}
     }
-
-    // Override assign
-    location.assign = function(url){
-      if(isSameOrigin(url)){ _origAssign(url); }
-      else { console.debug('[PopupKiller] Blocked location.assign →', url); }
-    };
-    // Override replace
-    location.replace = function(url){
-      if(isSameOrigin(url)){ _origReplace(url); }
-      else { console.debug('[PopupKiller] Blocked location.replace →', url); }
-    };
-
-    // Override location.href setter via property descriptor
-    try {
-      Object.defineProperty(location, 'href', {
-        get: function(){ return location.toString(); },
-        set: function(v){
-          if(isSameOrigin(v)){
-            _origAssign(v);
-          } else {
-            console.debug('[PopupKiller] Blocked location.href =', v);
-          }
-        },
+    try{location.assign=function(u){if(same(u))_oa(u);};}catch(e){}
+    try{location.replace=function(u){if(same(u))_or(u);};}catch(e){}
+    try{
+      Object.defineProperty(location,'href',{
+        get:function(){return location.toString();},
+        set:function(v){if(same(v))_oa(v);},
         configurable:true
       });
-    } catch(e){ /* Firefox strict mode — fallback handled by assign/replace above */ }
+    }catch(e){}
   })();
-
-  /* ── LAYER 4: Click interceptor — capture phase ────────────────
-     Runs BEFORE every other click handler on the entire page.
-     Kills any <a> pointing offsite with target=_blank/_new/_tab.
-     Also kills javascript: hrefs containing popup calls.        */
-  document.addEventListener('click', function(e){
-    var a = e.target;
-    // Walk up DOM to find anchor
-    while(a && a.tagName !== 'A'){ a = a.parentElement; }
-    if(!a) return;
-
-    var href   = a.getAttribute('href') || '';
-    var target = (a.getAttribute('target') || '').toLowerCase();
-
-    // Kill new-tab targets pointing off-site
-    if(target === '_blank' || target === '_new' || target === '_tab' || target === 'blank'){
-      try {
-        var u = new URL(href, location.origin);
-        if(u.origin !== location.origin){
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          console.debug('[PopupKiller] Blocked _blank link →', href);
-          return;
-        }
-        // Same-origin _blank — allow but redirect to _self
-        a.setAttribute('target', '_self');
-      } catch(ex){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
+  document.addEventListener('click',function(e){
+    var a=e.target;
+    while(a&&a.tagName!=='A')a=a.parentElement;
+    if(!a)return;
+    var href=a.getAttribute('href')||'',t=(a.getAttribute('target')||'').toLowerCase();
+    if(t==='_blank'||t==='_new'||t==='_tab'||t==='blank'){
+      try{
+        var u=new URL(href,location.origin);
+        if(u.origin!==location.origin){e.preventDefault();e.stopImmediatePropagation();return;}
+        a.setAttribute('target','_self');
+      }catch(ex){e.preventDefault();e.stopImmediatePropagation();}
     }
-
-    // Kill javascript: links with popup code
-    if(href.toLowerCase().indexOf('javascript:') === 0){
-      var code = href.slice(11);
-      if(/window\.open|popup|\.href\s*=/i.test(code)){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        console.debug('[PopupKiller] Blocked javascript: link');
-      }
+    if(href.toLowerCase().indexOf('javascript:')===0){
+      var code=href.slice(11);
+      if(/window\.open|popup|\.href\s*=/i.test(code)){e.preventDefault();e.stopImmediatePropagation();}
     }
-
-    // Kill suspiciously short data: URIs used as popup bait
-    if(href.toLowerCase().indexOf('data:text/html') === 0){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      console.debug('[PopupKiller] Blocked data: URI link');
-    }
-  }, true); // true = capture phase, fires first
-
-  /* ── LAYER 5: MutationObserver — live DOM sanitizer ───────────
-     Ad scripts inject <a target="_blank"> AFTER load.
-     We watch every DOM change and neutralize them instantly.
-     Also removes injected overlay divs used for click-jacking.  */
-  var OUR_IDS = ['pm','im','eps','toast','nav','msb'];
-  var AD_DOMAINS = [
+    if(href.toLowerCase().indexOf('data:text/html')===0){e.preventDefault();e.stopImmediatePropagation();}
+  },true);
+  var OUR_IDS=['pm','im','eps','toast','nav','msb'];
+  var AD_DOMAINS=[
     'popads.net','popcash.net','exoclick.com','juicyads.com','propellerads.com',
     'adsterra.com','trafficjunky.net','tsyndicate.com','adcash.com','admaven.com',
     'clickadu.com','hilltopads.net','plugrush.com','adskeeper.com','bidvertiser.com',
     'revcontent.com','mgid.com','adf.ly','adtelligent.com','trafficstars.com',
     'moonadex.com','eroadvertising.com','richpush.co','push.house','galaksion.com',
+    'adsco.re','intellipopup.com','adexchangerapid.com','cloudorchestranova.com',
+    'flushpersist.com','protrafficinspector.com','spadsync.com','usrpubtrk.com',
+    'huntrexus.com','preferencenail.com','zoologyfibre.com','duskishpaeony.cfd',
+    'forgivefireextinguisher.com','kettledroopingcontinuation.com','b7510.com',
+    'llvpn.com','vsembed.ru','dtscout.com','storm.vodvidl.site',
+    'whos.amung.us','widgets.amung.us','histats.com',
   ];
-
-  new MutationObserver(function(mutations){
-    mutations.forEach(function(m){
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){
       m.addedNodes.forEach(function(node){
-        if(node.nodeType !== 1) return; // elements only
-
-        // 1. Neutralize injected <a target="_blank"> tags
-        var anchors = [];
-        if(node.tagName === 'A') anchors.push(node);
-        try { anchors = anchors.concat(Array.prototype.slice.call(node.querySelectorAll('a'))); } catch(e){}
-        anchors.forEach(function(a){
-          var t = (a.getAttribute('target')||'').toLowerCase();
-          if(t === '_blank' || t === '_new'){
-            try {
-              var href = a.getAttribute('href') || '';
-              var u = new URL(href, location.origin);
-              if(u.origin !== location.origin){
-                a.setAttribute('target', '_self');
-                a.setAttribute('href', 'javascript:void(0)');
-                console.debug('[PopupKiller] Neutralized injected <a> →', href);
-              }
-            } catch(e){
-              a.setAttribute('target', '_self');
-              a.setAttribute('href', 'javascript:void(0)');
-            }
-          }
-        });
-
-        // 2. Remove injected ad scripts from known ad networks
-        var scripts = [];
-        if(node.tagName === 'SCRIPT') scripts.push(node);
-        try { scripts = scripts.concat(Array.prototype.slice.call(node.querySelectorAll('script'))); } catch(e){}
-        scripts.forEach(function(s){
-          var src = s.src || s.getAttribute('src') || '';
-          if(AD_DOMAINS.some(function(d){ return src.indexOf(d) !== -1; })){
+        if(node.nodeType!==1)return;
+        var sc=[];
+        if(node.tagName==='SCRIPT')sc.push(node);
+        try{sc=sc.concat(Array.prototype.slice.call(node.querySelectorAll('script')));}catch(e){}
+        sc.forEach(function(s){
+          var src=s.src||s.getAttribute('src')||'';
+          if(AD_DOMAINS.some(function(d){return src.indexOf(d)>-1;})){
             s.remove();
-            console.debug('[PopupKiller] Removed ad script →', src);
           }
         });
-
-        // 3. Remove injected full-screen overlay divs (click-jacking)
-        // Only remove elements NOT part of our own UI
-        try {
-          var isOurs = OUR_IDS.some(function(id){
-            return node.id === id || node.closest('#'+id);
-          });
-          if(!isOurs && !node.id){
-            var cs = window.getComputedStyle(node);
-            var pos = cs.position;
-            var z   = parseInt(cs.zIndex || '0', 10);
-            var w   = parseInt(cs.width  || '0', 10);
-            var h   = parseInt(cs.height || '0', 10);
-            // Full-screen overlay with very high z-index = ad clickjack trap
-            if((pos === 'fixed' || pos === 'absolute') && z > 1000 && w > 200 && h > 200){
+        var anc=[];
+        if(node.tagName==='A')anc.push(node);
+        try{anc=anc.concat(Array.prototype.slice.call(node.querySelectorAll('a')));}catch(e){}
+        anc.forEach(function(a){
+          var t=(a.getAttribute('target')||'').toLowerCase();
+          if(t==='_blank'||t==='_new'){
+            try{
+              var u=new URL(a.getAttribute('href')||'',location.origin);
+              if(u.origin!==location.origin){a.setAttribute('href','javascript:void(0)');a.setAttribute('target','_self');}
+            }catch(e){a.setAttribute('href','javascript:void(0)');}
+          }
+        });
+        try{
+          var isOurs=OUR_IDS.some(function(id){return node.id===id||node.closest('#'+id);});
+          if(!isOurs&&!node.id){
+            var cs=window.getComputedStyle(node);
+            if((cs.position==='fixed'||cs.position==='absolute')&&
+               parseInt(cs.zIndex||'0',10)>1000&&
+               parseInt(cs.width||'0',10)>200&&
+               parseInt(cs.height||'0',10)>200){
               node.remove();
-              console.debug('[PopupKiller] Removed overlay div z='+z);
             }
           }
-        } catch(e){}
+        }catch(e){}
       });
     });
-  }).observe(document.documentElement, {childList:true, subtree:true});
-
-  /* ── LAYER 6: beforeunload guard ───────────────────────────────
-     Prevents ads from navigating your entire page away.
-     We track genuine user navigation clicks and only allow those.*/
-  var _userNavClick = false;
-  document.addEventListener('click', function(e){
-    var a = e.target;
-    while(a && a.tagName !== 'A'){ a = a.parentElement; }
-    if(a && a.href){
-      try {
-        var u = new URL(a.href, location.origin);
-        if(u.origin === location.origin) _userNavClick = true;
-      } catch(e){}
-    }
-  }, true);
-
-  window.addEventListener('beforeunload', function(e){
-    if(!_userNavClick){
-      e.preventDefault();
-      e.returnValue = '';
-      console.debug('[PopupKiller] Blocked surprise beforeunload navigation');
-      return '';
-    }
-    _userNavClick = false;
+  }).observe(document.documentElement,{childList:true,subtree:true});
+  var _userNav=false;
+  document.addEventListener('click',function(e){
+    var a=e.target;while(a&&a.tagName!=='A')a=a.parentElement;
+    if(a&&a.href){try{var u=new URL(a.href,location.origin);if(u.origin===location.origin)_userNav=true;}catch(e){}}
+  },true);
+  window.addEventListener('beforeunload',function(e){
+    if(!_userNav){e.preventDefault();e.returnValue='';return '';}
+    _userNav=false;
   });
-
-  // Also kill setInterval/setTimeout tricks used to delay popup after user gesture
-  var _realSetInterval = window.setInterval;
-  var _realSetTimeout  = window.setTimeout;
-  window.setInterval = function(fn, delay){
-    if(typeof fn === 'string' && /window\.open|location\.href/i.test(fn)){
-      console.debug('[PopupKiller] Blocked setInterval popup code');
-      return 0;
-    }
-    return _realSetInterval.apply(this, arguments);
+  var _rSI=window.setInterval,_rST=window.setTimeout;
+  window.setInterval=function(fn,d){
+    if(typeof fn==='string'&&/window\.open|location\.href/i.test(fn))return 0;
+    return _rSI.apply(this,arguments);
   };
-  window.setTimeout = function(fn, delay){
-    if(typeof fn === 'string' && /window\.open|location\.href/i.test(fn)){
-      console.debug('[PopupKiller] Blocked setTimeout popup code');
-      return 0;
-    }
-    return _realSetTimeout.apply(this, arguments);
+  window.setTimeout=function(fn,d){
+    if(typeof fn==='string'&&/window\.open|location\.href/i.test(fn))return 0;
+    return _rST.apply(this,arguments);
   };
-
-  console.info('%c[PopupKiller] ✅ All 6 layers active — zero ads shall pass', 'color:#e8c97e;font-weight:bold');
+  console.info('%c[PopupKiller] 6 layers active','color:#e8c97e;font-weight:bold');
 })();
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ═══════════════════ TOKENS ═══════════════════ */
 :root{
   --bg:#120f09;--bg2:#1c1710;--bg3:#241e14;--bg4:#2e2719;
   --leather:#3d2e1a;--brass:#c8a96e;--brass2:#e8c97e;--brass3:#f5dfa0;
@@ -310,8 +171,6 @@ button,select{font-family:'DM Sans',sans-serif}
 ::-webkit-scrollbar{width:3px;height:3px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--brass);border-radius:2px}
-
-/* ═══════════════════ NAV ═══════════════════ */
 #nav{
   position:fixed;top:0;left:0;right:0;z-index:300;height:54px;
   display:flex;align-items:center;gap:8px;padding:0 16px;
@@ -338,8 +197,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .mob-sb{display:none;position:fixed;top:54px;left:0;right:0;z-index:299;background:rgba(18,15,9,.98);padding:8px 12px;border-bottom:1px solid var(--brd);transform:translateY(-4px);opacity:0;transition:var(--trans)}
 .mob-sb.on{display:block;transform:translateY(0);opacity:1}
 .mob-sb input{width:100%;background:var(--bg);border:1px solid var(--brd2);border-radius:10px;padding:8px 14px;color:var(--cream);font-family:'DM Sans';font-size:13px;outline:none;box-shadow:var(--sk-dn)}
-
-/* ═══════════════════ HERO ═══════════════════ */
 #hero{position:relative;height:88vh;min-height:500px;max-height:720px;display:flex;align-items:flex-end;padding:0 22px 64px;overflow:hidden;margin-top:54px}
 .hero-bg{position:absolute;inset:0;background-size:cover;background-position:center top;transition:opacity .7s}
 .hero-bg::before{content:'';position:absolute;inset:0;z-index:1;background:linear-gradient(to right,rgba(12,9,4,.98) 28%,rgba(12,9,4,.1) 75%),linear-gradient(to top,rgba(12,9,4,1) 0%,rgba(12,9,4,.4) 45%,transparent 100%)}
@@ -358,8 +215,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .btn-info{display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,rgba(200,169,110,.15) 0%,rgba(200,169,110,.08) 100%);color:var(--brass2);border:1px solid rgba(200,169,110,.3);padding:12px 20px;border-radius:50px;font-size:13px;font-weight:500;cursor:pointer;box-shadow:var(--sk-btn);transition:var(--trans)}
 .btn-info:hover{background:linear-gradient(180deg,rgba(200,169,110,.22) 0%,rgba(200,169,110,.12) 100%);border-color:rgba(200,169,110,.5)}
 .play-ico{width:9px;height:9px;background:#fff;clip-path:polygon(0 0,100% 50%,0 100%);flex-shrink:0}
-
-/* ═══════════════════ CHIPS / LANG ═══════════════════ */
 .chips{display:flex;gap:6px;padding:18px 16px 0;overflow-x:auto;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:6px 14px;border-radius:50px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--brd);color:var(--sub);background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);box-shadow:var(--sk-btn);transition:var(--trans);white-space:nowrap;flex-shrink:0}
@@ -370,8 +225,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .ls{padding:5px 13px;border-radius:50px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid var(--brd);color:var(--sub);background:linear-gradient(180deg,var(--bg4) 0%,var(--bg3) 100%);box-shadow:var(--sk-btn);transition:var(--trans);white-space:nowrap;flex-shrink:0;letter-spacing:.5px;text-transform:uppercase}
 .ls:hover{border-color:rgba(200,169,110,.3);color:var(--brass)}
 .ls.on{background:linear-gradient(180deg,var(--bg4) 0%,var(--leather) 100%);border-color:rgba(200,169,110,.45);color:var(--brass2);box-shadow:0 2px 8px rgba(200,169,110,.15),var(--sk-btn);font-weight:700}
-
-/* ═══════════════════ SECTIONS / ROWS ═══════════════════ */
 .sec{padding:22px 16px}
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .st{font-family:'Playfair Display';font-size:17px;font-weight:700;color:var(--cream);letter-spacing:-.3px}
@@ -380,8 +233,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .sa:hover{background:rgba(200,169,110,.1);color:var(--brass2)}
 .hrow{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
 .hrow::-webkit-scrollbar{display:none}
-
-/* ═══════════════════ CARDS ═══════════════════ */
 .card{flex-shrink:0;width:130px;border-radius:var(--rad);overflow:hidden;cursor:pointer;position:relative;background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd);box-shadow:var(--sk-card);transition:var(--trans);will-change:transform}
 .card:hover{transform:translateY(-7px) scale(1.02);box-shadow:0 20px 40px rgba(0,0,0,.75),0 2px 4px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);border-color:rgba(200,169,110,.3)}
 .card:active{transform:scale(.97)}
@@ -408,8 +259,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .empty{grid-column:1/-1;text-align:center;padding:60px 0;color:var(--sub);font-size:13px}
 .lmbtn{display:block;margin:18px auto 0;background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd2);color:var(--brass);padding:10px 28px;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;transition:var(--trans);box-shadow:var(--sk-btn)}
 .lmbtn:hover{border-color:rgba(200,169,110,.45);color:var(--brass2)}
-
-/* ═══════════════════ PLAYER MODAL ═══════════════════ */
 #pm{position:fixed;inset:0;z-index:500;background:rgba(6,4,2,.97);display:none;flex-direction:column;align-items:center}
 #pm.on{display:flex}
 .pmtop{width:100%;display:flex;align-items:center;justify-content:space-between;padding:9px 14px;gap:8px;flex-shrink:0;background:linear-gradient(to bottom,var(--bg2),var(--bg));border-bottom:1px solid var(--brd2);box-shadow:0 4px 20px rgba(0,0,0,.5)}
@@ -422,10 +271,8 @@ button,select{font-family:'DM Sans',sans-serif}
 .srv{background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd);color:var(--sub);padding:5px 11px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--trans);white-space:nowrap;flex-shrink:0;box-shadow:var(--sk-btn)}
 .srv:hover{border-color:rgba(200,169,110,.35);color:var(--brass)}
 .srv.on{background:linear-gradient(180deg,var(--leather) 0%,var(--bg3) 100%);border-color:rgba(200,169,110,.45);color:var(--brass2);box-shadow:0 2px 8px rgba(200,169,110,.12),var(--sk-btn)}
-
-/* ── PLAYER FRAME ── */
 .pframe{width:100%;flex:1;position:relative;background:#000;display:flex;align-items:center;justify-content:center;min-height:0}
-.pframe iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.pframe iframe{position:absolute;inset:0;width:100%;height:100%;border:none;transition:opacity .3s}
 .pload{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:rgba(6,4,2,.95);z-index:2;pointer-events:none}
 .pload.gone{display:none}
 .spin{width:32px;height:32px;border:2px solid var(--brd2);border-top-color:var(--brass);border-radius:50%;animation:spin .75s linear infinite}
@@ -434,8 +281,8 @@ button,select{font-family:'DM Sans',sans-serif}
 .perrbanner{position:absolute;bottom:0;left:0;right:0;z-index:3;background:rgba(192,57,43,.9);color:#fff;font-size:11px;font-weight:600;padding:8px 14px;display:none;align-items:center;justify-content:space-between;backdrop-filter:blur(4px)}
 .perrbanner.on{display:flex}
 .errnxt{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans'}
-
-/* episode picker */
+.proxy-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.3);color:#4ade80;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.8px;font-family:'DM Mono'}
+.proxy-badge.off{background:rgba(192,57,43,.12);border-color:rgba(192,57,43,.3);color:#f87171}
 .eppick{flex-shrink:0;padding:10px 14px;max-height:200px;overflow-y:auto;background:var(--bg);border-top:1px solid var(--brd);box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
 .ep-lbl{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;margin-top:8px;font-family:'DM Mono'}
 .ep-lbl:first-child{margin-top:0}
@@ -448,8 +295,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .fsbtn:hover{color:var(--brass);border-color:var(--brd2)}
 .extbtn{background:linear-gradient(180deg,#1f7a45,#155c32);border-color:rgba(39,174,96,.3);color:#fff;box-shadow:0 1px 0 #0d4222 inset,0 4px 12px rgba(39,174,96,.3)}
 .extbtn:hover{background:linear-gradient(180deg,#24904e,#1a7a3e)}
-
-/* ═══════════════════ INFO MODAL ═══════════════════ */
 #im{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.82);backdrop-filter:blur(12px);display:none;align-items:flex-end;justify-content:center}
 #im.on{display:flex}
 .ibox{background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd2);border-radius:22px 22px 0 0;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;animation:slideUp .32s cubic-bezier(.4,0,.2,1);box-shadow:0 -8px 32px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06)}
@@ -470,8 +315,6 @@ button,select{font-family:'DM Sans',sans-serif}
 .igenres{display:flex;gap:5px;flex-wrap:wrap}
 .gtag{background:rgba(200,169,110,.07);border:1px solid var(--brd);padding:3px 9px;border-radius:4px;font-size:10px;color:var(--sub)}
 .imdb-badge{background:#f5c518;color:#000;font-weight:700;font-family:'DM Mono';font-size:10px;padding:2px 7px;border-radius:4px;letter-spacing:.5px}
-
-/* ═══════════════════ EXT PLAYER SHEET ═══════════════════ */
 #eps{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center}
 #eps.on{display:flex}
 .epbox{background:linear-gradient(160deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd2);border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:20px;animation:slideUp .28s cubic-bezier(.4,0,.2,1);box-shadow:0 -6px 28px rgba(0,0,0,.6)}
@@ -486,14 +329,9 @@ button,select{font-family:'DM Sans',sans-serif}
 .epname{font-size:12px;font-weight:600;color:var(--cream);margin-bottom:2px}
 .epsub{font-size:10px;color:var(--sub)}
 .epcancel{width:100%;margin-top:10px;background:transparent;color:var(--sub);border:none;padding:10px;font-size:12px;cursor:pointer;font-family:'DM Sans'}
-
-/* ═══════════════════ TOAST ═══════════════════ */
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:700;background:linear-gradient(160deg,var(--bg3),var(--bg2));border:1px solid var(--brd2);color:var(--cream);padding:10px 18px;border-radius:50px;font-size:12px;font-weight:500;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s;box-shadow:0 8px 28px rgba(0,0,0,.6)}
 #toast.show{opacity:1}
-
 footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color:var(--sub);font-size:10px;margin-top:6px}
-
-/* ═══════════════════ RESPONSIVE ═══════════════════ */
 @media(max-width:600px){
   #nav{height:50px;padding:0 10px;gap:5px}
   .logo{font-size:18px}
@@ -522,7 +360,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
 </head>
 <body>
 
-<!-- ════════ NAV ════════ -->
 <nav id="nav">
   <div class="logo" onclick="goHome()">Stream<span>Vault</span></div>
   <div class="nav-tabs">
@@ -566,7 +403,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <input type="text" placeholder="Search movies, series..." id="msi" oninput="search(this.value)" autocomplete="off">
 </div>
 
-<!-- ════════ HERO ════════ -->
 <div id="hero">
   <div class="hero-bg" id="heroBg"></div>
   <div class="hero-c" id="heroC">
@@ -576,7 +412,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
-<!-- ════════ GENRE CHIPS ════════ -->
 <div class="chips" id="chips">
   <div class="chip on" onclick="setGenre(0,this)">All</div>
   <div class="chip" onclick="setGenre(28,this)">Action</div>
@@ -591,7 +426,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="chip" onclick="setGenre(10751,this)">Family</div>
 </div>
 
-<!-- ════════ LANG STRIP ════════ -->
 <div class="lang-strip" id="langStrip">
   <div class="ls on" onclick="setLang('',this)">All</div>
   <div class="ls" onclick="setLang('ml',this)">ML · Malayalam</div>
@@ -608,7 +442,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="ls" onclick="setLang('zh',this)">ZH · Chinese</div>
 </div>
 
-<!-- ════════ HOME SECTIONS ════════ -->
 <div id="homeS">
   <div class="sec">
     <div class="sh"><div class="st">🔥 Trending <em>Movies</em></div><span class="sa" onclick="navTo('movies',document.getElementById('ntMovies'))">See All →</span></div>
@@ -636,7 +469,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
-<!-- ════════ GRID ════════ -->
 <div id="gridS" style="display:none">
   <div class="sec">
     <div class="sh">
@@ -648,7 +480,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
-<!-- ════════ SEARCH ════════ -->
 <div id="searchS" style="display:none">
   <div class="sec">
     <div class="sh"><div class="st">🔍 Search <em>Results</em></div><span id="searchCnt" style="font-size:11px;color:var(--sub)"></span></div>
@@ -658,12 +489,12 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
 
 <footer>© 2026 StreamVault &nbsp;·&nbsp; TMDB data &nbsp;·&nbsp; Streams via VidLink · VidSrc · 2Embed · AutoEmbed &nbsp;·&nbsp; All content © respective owners</footer>
 
-<!-- ════════ PLAYER MODAL ════════ -->
 <div id="pm">
   <div class="pmtop">
     <button class="pmclose" onclick="closePlayer()">✕</button>
     <div class="pmtitle" id="pmtitle">Loading...</div>
     <div class="pmctrls">
+      <span id="proxyBadge" class="proxy-badge">🛡 PROXY</span>
       <button class="fsbtn" onclick="goFS()">⛶ FS</button>
       <button class="extbtn" onclick="openExtSheet()">📱 External</button>
     </div>
@@ -671,20 +502,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="srvrow" id="srvrow"></div>
   <div class="pframe" id="pframe">
     <div class="pload" id="pload"><div class="spin"></div><p id="ploadt">Loading stream...</p></div>
-    <!--
-      HARDENED IFRAME — no sandbox attribute (players detect & block it).
-      Security enforced via:
-        allow      → only necessary browser permissions granted
-        referrerpolicy → ad trackers cannot fingerprint your domain
-      Popup blocking handled entirely by the JS killer in <head>.
-      src is NEVER set directly — always via loadFrame() which resets
-      to about:blank first, killing any ad scripts from the prior server.
-    -->
-    <iframe
-      id="pif"
-      allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-      referrerpolicy="no-referrer"
-    ></iframe>
+    <iframe id="pif" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer"></iframe>
     <div class="perrbanner" id="perrbanner">
       <span id="perrmsg">Stream error — try next server</span>
       <button class="errnxt" onclick="nextServer()">Try Next ▶</button>
@@ -698,7 +516,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
-<!-- ════════ INFO MODAL ════════ -->
 <div id="im" onclick="if(event.target===this)closeInfo()">
   <div class="ibox">
     <div class="itop">
@@ -716,7 +533,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   </div>
 </div>
 
-<!-- ════════ EXT PLAYER SHEET ════════ -->
 <div id="eps" onclick="if(event.target===this)closeExt()">
   <div class="epbox">
     <div class="eph">Open In External Player</div>
@@ -731,7 +547,6 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
 <script>
 const WORKER_URL = 'https://streamvault.shabeershz21.workers.dev';
 const IMG = 'https://image.tmdb.org/t/p/';
-
 const LANG_NAMES = {
   ml:'Malayalam',en:'English',ta:'Tamil',hi:'Hindi',te:'Telugu',
   kn:'Kannada',ko:'Korean',ja:'Japanese',es:'Spanish',fr:'French',
@@ -739,39 +554,47 @@ const LANG_NAMES = {
   th:'Thai','':"All"
 };
 
-/* ── Streaming providers ── */
 const PROVIDERS = [
-  {label:'VidLink',    note:'Low ads',
+  {label:'VidLink',    note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://vidlink.pro/movie/${id}`,
    tv:   (id,s,e)=>`https://vidlink.pro/tv/${id}/${s}/${e}`},
-  {label:'VidSrc Pro', note:'HD',
+  {label:'VidSrc Pro', note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://vidsrc.pro/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidsrc.pro/embed/tv?tmdb=${id}&season=${s}&episode=${e}`},
-  {label:'VidSrc.fyi', note:'Multi-CDN',
+  {label:'VidSrc.fyi', note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://vidsrc.fyi/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidsrc.fyi/embed/tv/${id}/${s}/${e}`},
-  {label:'2Embed',     note:'Fast',
+  {label:'2Embed',     note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://www.2embed.cc/embed/${id}`,
    tv:   (id,s,e)=>`https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`},
-  {label:'AutoEmbed',  note:'Auto',
+  {label:'AutoEmbed',  note:'Direct', useProxy:false,
    movie: id=>`https://player.autoembed.cc/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`},
-  {label:'VidBinge',   note:'Clean',
+  {label:'VidBinge',   note:'Direct', useProxy:false,
    movie: id=>`https://vidbinge.dev/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidbinge.dev/embed/tv/${id}/${s}/${e}`},
 ];
 
-/* ── State ── */
+/*
+ * CHANGED: proxyUrl now builds /x/<host>/<path> URLs
+ * instead of /proxy?url=... — this is the unified proxy route
+ */
+function proxyUrl(embedUrl) {
+  try {
+    const u = new URL(embedUrl);
+    return WORKER_URL + '/x/' + u.hostname + u.pathname + u.search;
+  } catch(e) {
+    return embedUrl;
+  }
+}
+
 const S = {
   sec:'home', genre:0, lang:'',
   curItem:null, season:1, ep:1, prov:0,
   gridData:[], gridPage:0, gridPS:24,
-  streamUrl:'', imdbCache:{},
+  streamUrl:'', directUrl:'', imdbCache:{},
 };
 
-/* ══════════════════════════════════════════════════════════════
-   WORKER API
-   ══════════════════════════════════════════════════════════════ */
 async function api(path, params={}) {
   const u = new URL(WORKER_URL + '/api' + path);
   Object.entries(params).forEach(([k,v]) => v !== undefined && v !== '' && u.searchParams.set(k,v));
@@ -785,7 +608,6 @@ async function api(path, params={}) {
   }
 }
 
-/* ── IMDB ID — cached ── */
 async function getImdb(id, type) {
   const key = type+':'+id;
   if(S.imdbCache[key]) return S.imdbCache[key];
@@ -803,17 +625,13 @@ function buildParams(extras={}) {
 function discoverPath(type='movie', extras={}) {
   if(S.lang || S.genre) {
     return [`/discover/${type}`, buildParams({
-      sort_by:'popularity.desc',
-      ...extras,
+      sort_by:'popularity.desc', ...extras,
       ...(S.genre ? {with_genres: S.genre} : {}),
     })];
   }
   return [`/trending/${type}/week`, buildParams(extras)];
 }
 
-/* ══════════════════════════════════════════════════════════════
-   CARD
-   ══════════════════════════════════════════════════════════════ */
 function mkCard(item, type='movie') {
   const title = item.title || item.name || '—';
   const year  = (item.release_date || item.first_air_date || '').slice(0,4);
@@ -846,17 +664,6 @@ function gridSkels(n=12) {
   return Array(n).fill(`<div class="skel" style="height:185px;border-radius:14px"></div>`).join('');
 }
 
-/* ── ROW ── */
-async function loadRow(elId, path, type, params={}) {
-  const el = document.getElementById(elId); if(!el) return;
-  el.innerHTML = skels(8);
-  const d = await api(path, params);
-  const items = (d.results || []).slice(0,18);
-  el.innerHTML = items.length
-    ? items.map(i => mkCard(i, type)).join('')
-    : `<span style="color:var(--sub);font-size:12px;padding:20px">Nothing found for this filter</span>`;
-}
-
 async function loadHomeRow(elId, type, fallbackPath, fallbackParams={}) {
   const el = document.getElementById(elId); if(!el) return;
   el.innerHTML = skels(8);
@@ -872,10 +679,9 @@ async function loadHomeRow(elId, type, fallbackPath, fallbackParams={}) {
   const items = (d.results || []).slice(0,18);
   el.innerHTML = items.length
     ? items.map(i => mkCard(i, type)).join('')
-    : `<span style="color:var(--sub);font-size:12px;padding:20px">Nothing found for this filter</span>`;
+    : `<span style="color:var(--sub);font-size:12px;padding:20px">Nothing found</span>`;
 }
 
-/* ── HERO ── */
 async function loadHero() {
   const [path, params] = discoverPath('movie');
   const d = await api(path, params);
@@ -905,7 +711,6 @@ async function loadHero() {
     </div>`;
 }
 
-/* ── INIT HOME ── */
 function initHome() {
   loadHero();
   loadHomeRow('rTrMovie', 'movie', '/trending/movie/week');
@@ -916,7 +721,6 @@ function initHome() {
   loadHomeRow('rAward',   'movie', '/movie/top_rated', {vote_count_gte:1000});
 }
 
-/* ── NAV ── */
 async function navTo(sec, el) {
   S.sec = sec;
   document.querySelectorAll('.nt').forEach(b => b.classList.remove('on'));
@@ -956,7 +760,6 @@ function renderGrid() {
 function loadMore() { S.gridPage++; renderGrid(); }
 function goHome()   { navTo('home', document.getElementById('ntHome')); }
 
-/* ── GENRE & LANG ── */
 function setGenre(g, el) {
   S.genre = g;
   document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
@@ -975,7 +778,6 @@ function setLang(lang, el) {
   else navTo(S.sec, document.querySelector('.nt.on'));
 }
 
-/* ── SEARCH ── */
 let sTimer;
 async function search(q) {
   clearTimeout(sTimer);
@@ -1013,9 +815,6 @@ function toggleMS() {
 }
 function closeMS() { document.getElementById('msb').classList.remove('on'); document.getElementById('msi').value=''; }
 
-/* ══════════════════════════════════════════════════════════════
-   INFO MODAL
-   ══════════════════════════════════════════════════════════════ */
 async function openInfo(item) {
   if(typeof item === 'string') item = JSON.parse(item);
   S.curItem = item;
@@ -1050,10 +849,6 @@ async function openInfo(item) {
 }
 function closeInfo() { document.getElementById('im').classList.remove('on'); }
 
-/* ══════════════════════════════════════════════════════════════
-   PLAYER — all iframe interactions go through loadFrame()
-   which resets to about:blank first to kill lingering ad scripts
-   ══════════════════════════════════════════════════════════════ */
 async function startPlay(item) {
   if(typeof item === 'string') item = JSON.parse(item);
   S.curItem = item; S.prov = 0; S.season = 1; S.ep = 1;
@@ -1067,13 +862,13 @@ async function startPlay(item) {
     await buildEpPicker(item.id);
   } else {
     document.getElementById('eppick').style.display = 'none';
-    loadFrame(PROVIDERS[0].movie(item.id), 'VidLink');
+    loadCurrentSource();
   }
 }
 
 function buildServerRow() {
   document.getElementById('srvrow').innerHTML = PROVIDERS.map((p,i) =>
-    `<div class="srv${i===0?' on':''}" id="srv${i}" onclick="switchProv(${i},this)">${p.label} <span style="font-size:9px;opacity:.5">${p.note}</span></div>`
+    `<div class="srv${i===0?' on':''}" id="srv${i}" onclick="switchProv(${i},this)">${p.label} <span style="font-size:9px;opacity:.55">${p.note}</span></div>`
   ).join('');
 }
 
@@ -1097,19 +892,27 @@ function pickSeason(sNum, epCt, el) {
   document.getElementById('egrid').innerHTML = eps.map((e,i) =>
     `<div class="ebtn${i===0?' on':''}" onclick="pickEp(${e},this)">E${e}</div>`
   ).join('');
-  loadEpisode();
+  loadCurrentSource();
 }
 
 function pickEp(ep, el) {
   S.ep = ep;
   document.querySelectorAll('.ebtn').forEach(b => b.classList.remove('on'));
   if(el) el.classList.add('on');
-  loadEpisode();
+  loadCurrentSource();
 }
 
-function loadEpisode() {
+/*
+ * CHANGED: loadCurrentSource computes BOTH direct and proxied URLs
+ * upfront, then passes them separately to loadFrame
+ */
+function loadCurrentSource() {
   const p = PROVIDERS[S.prov];
-  loadFrame(p.tv(S.curItem.id, S.season, S.ep), p.label);
+  const direct = S.curItem.type === 'tv'
+    ? p.tv(S.curItem.id, S.season, S.ep)
+    : p.movie(S.curItem.id);
+  const proxied = p.useProxy ? proxyUrl(direct) : direct;
+  loadFrame(proxied, direct, p.label, p.useProxy);
 }
 
 function switchProv(idx, el) {
@@ -1117,33 +920,42 @@ function switchProv(idx, el) {
   document.querySelectorAll('.srv').forEach(b => b.classList.remove('on'));
   if(el) el.classList.add('on');
   hideBanner();
-  if(S.curItem.type === 'tv') loadEpisode();
-  else loadFrame(PROVIDERS[idx].movie(S.curItem.id), PROVIDERS[idx].label);
+  loadCurrentSource();
 }
 
-/* ══ loadFrame — THE SAFE LOADER ══════════════════════════════
-   Always resets iframe to about:blank before loading new URL.
-   This hard-kills any ad scripts running from the previous server
-   before the new one gets a chance to load.
-   ============================================================ */
+/*
+ * CHANGED: loadFrame now takes both proxiedUrl and directUrl explicitly
+ * No more URL parsing to extract the original
+ */
 let _loadTimer;
-function loadFrame(url, label) {
-  S.streamUrl = url;
+function loadFrame(proxiedUrl, directUrl, label, isProxy) {
+  S.streamUrl = proxiedUrl;
+  S.directUrl = directUrl;
+
   const pload = document.getElementById('pload');
   const pif   = document.getElementById('pif');
+  const badge = document.getElementById('proxyBadge');
+
+  if(isProxy) {
+    badge.className = 'proxy-badge';
+    badge.textContent = '🛡 PROXY';
+  } else {
+    badge.className = 'proxy-badge off';
+    badge.textContent = '⚠ DIRECT';
+  }
+
   hideBanner();
   pload.classList.remove('gone');
-  document.getElementById('ploadt').textContent = `Loading from ${label||'server'}...`;
+  document.getElementById('ploadt').textContent = isProxy
+    ? `Loading via proxy from ${label}...`
+    : `Loading from ${label}...`;
   pif.style.opacity = '0';
 
-  // STEP 1: Hard reset — kills ALL JS from previous embed
   pif.src = 'about:blank';
   clearTimeout(_loadTimer);
 
-  // STEP 2: After browser has fully reset iframe, load the real URL
   setTimeout(function(){
     pif.onload = function(){
-      // Don't react to our own about:blank reset
       if(pif.src === 'about:blank' || pif.src === '') return;
       clearTimeout(_loadTimer);
       pload.classList.add('gone');
@@ -1155,12 +967,11 @@ function loadFrame(url, label) {
       pif.style.opacity = '1';
       showBanner('Server unavailable');
     };
-    pif.src = url;
-    // Safety fallback: some embeds never fire onload
+    pif.src = proxiedUrl;
     _loadTimer = setTimeout(function(){
       pload.classList.add('gone');
       pif.style.opacity = '1';
-    }, 15000);
+    }, 18000);
   }, 80);
 }
 
@@ -1175,13 +986,9 @@ function nextServer() {
   switchProv(next, document.getElementById('srv'+next));
 }
 
-/* ══ closePlayer — INSTANTLY NUKES IFRAME ═══════════════════
-   Sets src to about:blank the moment modal closes.
-   Any ad JS still running inside the iframe is immediately killed.
-   ============================================================ */
 function closePlayer() {
   const pif = document.getElementById('pif');
-  pif.src   = 'about:blank';   // ← nuke everything inside
+  pif.src = 'about:blank';
   pif.style.opacity = '0';
   clearTimeout(_loadTimer);
   document.getElementById('pload').classList.remove('gone');
@@ -1189,7 +996,7 @@ function closePlayer() {
   hideBanner();
   document.getElementById('pm').classList.remove('on');
   document.body.style.overflow = '';
-  S.streamUrl = '';
+  S.streamUrl = ''; S.directUrl = '';
 }
 
 function goFS() {
@@ -1201,12 +1008,9 @@ function goFS() {
   else if(fn2) fn2.call(fr).catch(()=>{});
 }
 
-/* ══════════════════════════════════════════════════════════════
-   EXTERNAL PLAYER SHEET
-   ══════════════════════════════════════════════════════════════ */
 function openExtSheet() {
-  if(!S.streamUrl) { toast('Wait for stream to load'); return; }
-  const url = S.streamUrl;
+  const url = S.directUrl || S.streamUrl;
+  if(!url) { toast('Wait for stream to load'); return; }
   const title = encodeURIComponent(S.curItem?.title||'Stream');
   const mk = pkg => `intent:${url}#Intent;action=android.intent.action.VIEW;type=video/*;${pkg?`package=${pkg};`:''}S.title=${title};S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore;end`;
   const btns = [
@@ -1239,7 +1043,6 @@ function extAct(idx) {
 }
 function closeExt() { document.getElementById('eps').classList.remove('on'); }
 
-/* ── TOAST ── */
 let tTimer;
 function toast(msg) {
   const t = document.getElementById('toast');
@@ -1248,7 +1051,6 @@ function toast(msg) {
   tTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
-/* ── KEYBOARD ── */
 document.addEventListener('keydown', e => {
   if(e.key==='Escape') { closePlayer(); closeInfo(); closeExt(); }
   if(e.key==='f' && document.getElementById('pm').classList.contains('on')) goFS();
@@ -1260,7 +1062,6 @@ window.addEventListener('popstate', () => {
   if(document.getElementById('pm').classList.contains('on'))  { closePlayer(); return; }
 });
 
-/* ── BOOT ── */
 initHome();
 </script>
 </body>
