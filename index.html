@@ -6,13 +6,12 @@
 <meta name="theme-color" content="#1a1209">
 <title>StreamVault</title>
 <meta http-equiv="Permissions-Policy" content="autoplay=*, encrypted-media=*, fullscreen=*, picture-in-picture=*">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com; frame-src *; media-src *; img-src * data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com data:; connect-src *; form-action 'self';">
 
 <script>
 (function(){
   'use strict';
   
-  /* ── Deep Proxy Popup Killer (Bypasses Sandbox Detection Checks) ── */
+  /* ── Deep Proxy Popup Killer & Redirect Preventer ── */
   var fallbackFn = function() { return fallbackProxy; };
   var handler = { get: function(t, p) { return p in t ? t[p] : fallbackFn; } };
   var fallbackProxy = new Proxy({
@@ -31,7 +30,6 @@
     screen: { width: 0, height: 0 }
   }, handler);
 
-  // Mask override as native code execution
   var customOpen = function() { return fallbackProxy; };
   Object.defineProperty(customOpen, 'toString', {
     value: function() { return "function open() { [native code] }"; },
@@ -40,114 +38,27 @@
   window.open = customOpen;
   window.showModalDialog = function(){ return null; };
 
-  (function(){
-    var _oa=location.assign.bind(location),_or=location.replace.bind(location);
-    function same(u){
-      if(!u||u===''||u==='about:blank')return true;
-      if(u.startsWith('#'))return true;
-      try{return new URL(u,location.origin).origin===location.origin;}catch(e){return false;}
+  // Anti-Framebusting Guard
+  var _userNav = false;
+  document.addEventListener('click', function(e) {
+    var a = e.target;
+    while(a && a.tagName !== 'A') a = a.parentElement;
+    if(a && a.href) {
+      try {
+        var u = new URL(a.href, location.origin);
+        if(u.origin === location.origin) _userNav = true;
+      } catch(e){}
     }
-    try{location.assign=function(u){if(same(u))_oa(u);};}catch(e){}
-    try{location.replace=function(u){if(same(u))_or(u);};}catch(e){}
-    try{
-      Object.defineProperty(location,'href',{
-        get:function(){return location.toString();},
-        set:function(v){if(same(v))_oa(v);},
-        configurable:true
-      });
-    }catch(e){}
-  })();
-  document.addEventListener('click',function(e){
-    var a=e.target;
-    while(a&&a.tagName!=='A')a=a.parentElement;
-    if(!a)return;
-    var href=a.getAttribute('href')||'',t=(a.getAttribute('target')||'').toLowerCase();
-    if(t==='_blank'||t==='_new'||t==='_tab'||t==='blank'){
-      try{
-        var u=new URL(href,location.origin);
-        if(u.origin!==location.origin){e.preventDefault();e.stopImmediatePropagation();return;}
-        a.setAttribute('target','_self');
-      }catch(ex){e.preventDefault();e.stopImmediatePropagation();}
+  }, true);
+
+  window.addEventListener('beforeunload', function(e) {
+    if(!_userNav) {
+      e.preventDefault();
+      e.returnValue = '';
+      return '';
     }
-    if(href.toLowerCase().indexOf('javascript:')===0){
-      var code=href.slice(11);
-      if(/window\.open|popup|\.href\s*=/i.test(code)){e.preventDefault();e.stopImmediatePropagation();}
-    }
-    if(href.toLowerCase().indexOf('data:text/html')===0){e.preventDefault();e.stopImmediatePropagation();}
-  },true);
-  var OUR_IDS=['pm','im','eps','toast','nav','msb'];
-  var AD_DOMAINS=[
-    'popads.net','popcash.net','exoclick.com','juicyads.com','propellerads.com',
-    'adsterra.com','trafficjunky.net','tsyndicate.com','adcash.com','admaven.com',
-    'clickadu.com','hilltopads.net','plugrush.com','adskeeper.com','bidvertiser.com',
-    'revcontent.com','mgid.com','adf.ly','adtelligent.com','trafficstars.com',
-    'moonadex.com','eroadvertising.com','richpush.co','push.house','galaksion.com',
-    'adsco.re','intellipopup.com','adexchangerapid.com','cloudorchestranova.com',
-    'flushpersist.com','protrafficinspector.com','spadsync.com','usrpubtrk.com',
-    'huntrexus.com','preferencenail.com','zoologyfibre.com','duskishpaeony.cfd',
-    'forgivefireextinguisher.com','kettledroopingcontinuation.com','b7510.com',
-    'llvpn.com','vsembed.ru','dtscout.com','storm.vodvidl.site',
-    'whos.amung.us','widgets.amung.us','histats.com','pyppo.com',
-  ];
-  new MutationObserver(function(muts){
-    muts.forEach(function(m){
-      m.addedNodes.forEach(function(node){
-        if(node.nodeType!==1)return;
-        var sc=[];
-        if(node.tagName==='SCRIPT')sc.push(node);
-        try{sc=sc.concat(Array.prototype.slice.call(node.querySelectorAll('script')));}catch(e){}
-        sc.forEach(function(s){
-          var src=s.src||s.getAttribute('src')||'';
-          if(AD_DOMAINS.some(function(d){return src.indexOf(d)>-1;})){
-            s.remove();
-          }
-        });
-        var anc=[];
-        if(node.tagName==='A')anc.push(node);
-        try{anc=anc.concat(Array.prototype.slice.call(node.querySelectorAll('a')));}catch(e){}
-        anc.forEach(function(a){
-          var t=(a.getAttribute('target')||'').toLowerCase();
-          if(t==='_blank'||t==='_new'){
-            try{
-              var u=new URL(a.getAttribute('href')||'',location.origin);
-              if(u.origin!==location.origin){a.setAttribute('href','javascript:void(0)');a.setAttribute('target','_self');}
-            }catch(e){a.setAttribute('href','javascript:void(0)');}
-          }
-        });
-        try{
-          var isOurs=OUR_IDS.some(function(id){return node.id===id||node.closest('#'+id);});
-          if(!isOurs&&!node.id){
-            var cs=window.getComputedStyle(node);
-            if((cs.position==='fixed'||cs.position==='absolute')&&
-               parseInt(cs.zIndex||'0',10)>1000&&
-               parseInt(cs.width||'0',10)>200&&
-               parseInt(cs.height||'0',10)>200){
-              node.remove();
-            }
-          }
-        }catch(e){}
-      });
-    });
-  }).observe(document.documentElement,{childList:true,subtree:true});
-  var _userNav=false;
-  document.addEventListener('click',function(e){
-    var a=e.target;while(a&&a.tagName!=='A')a=a.parentElement;
-    if(a&&a.href){try{var u=new URL(a.href,location.origin);if(u.origin===location.origin)_userNav=true;}catch(e){}}
-  },true);
-  window.addEventListener('beforeunload',function(e){
-    if(!_userNav){e.preventDefault();e.returnValue='';return '';}
-    _userNav=false;
+    _userNav = false;
   });
-  var _rSI=window.setInterval,_rST=window.setTimeout;
-  window.setInterval=function(fn,d){
-    if(typeof fn==='string'&&/window\.open|location\.href/i.test(fn))return 0;
-    return _rSI.apply(this,arguments);
-  };
-  window.setTimeout=function(fn,d){
-    if(typeof fn==='string'&&/window\.open|location\.href/i.test(fn))return 0;
-    return _rST.apply(this,arguments);
-  };
-  console.info('%c[PopupKiller] 6 layers active (Stealth Enabled)','color:#e8c97e;font-weight:bold');
 })();
 </script>
 
@@ -272,7 +183,7 @@ button,select{font-family:'DM Sans',sans-serif}
 .pmclose{width:30px;height:30px;border-radius:50%;flex-shrink:0;background:linear-gradient(180deg,#c0392b,#8e1c1c);border:1px solid rgba(0,0,0,.4);color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 #6b1010,var(--sk-btn);transition:var(--trans)}
 .pmclose:hover{background:linear-gradient(180deg,#d44040,#a52828)}
 .pmtitle{font-family:'Playfair Display';font-size:15px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--brass2)}
-.pmctrls{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.pmctrls{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .srvrow{display:flex;gap:5px;flex-wrap:wrap;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--brd);flex-shrink:0;overflow-x:auto;scrollbar-width:none}
 .srvrow::-webkit-scrollbar{display:none}
 .srv{background:linear-gradient(180deg,var(--bg3) 0%,var(--bg2) 100%);border:1px solid var(--brd);color:var(--sub);padding:5px 11px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;transition:var(--trans);white-space:nowrap;flex-shrink:0;box-shadow:var(--sk-btn)}
@@ -288,8 +199,8 @@ button,select{font-family:'DM Sans',sans-serif}
 .perrbanner{position:absolute;bottom:0;left:0;right:0;z-index:3;background:rgba(192,57,43,.9);color:#fff;font-size:11px;font-weight:600;padding:8px 14px;display:none;align-items:center;justify-content:space-between;backdrop-filter:blur(4px)}
 .perrbanner.on{display:flex}
 .errnxt{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans'}
-.proxy-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.3);color:#4ade80;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.8px;font-family:'DM Mono'}
-.proxy-badge.off{background:rgba(192,57,43,.12);border-color:rgba(192,57,43,.3);color:#f87171}
+.shields-btn{display:inline-flex;align-items:center;gap:5px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#4ade80;padding:5px 11px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;transition:var(--trans);box-shadow:var(--sk-btn);letter-spacing:.3px}
+.shields-btn.off{background:rgba(192,57,43,.15);border-color:rgba(192,57,43,.4);color:#f87171}
 .eppick{flex-shrink:0;padding:10px 14px;max-height:200px;overflow-y:auto;background:var(--bg);border-top:1px solid var(--brd);box-shadow:inset 0 2px 8px rgba(0,0,0,.5)}
 .ep-lbl{font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;margin-top:8px;font-family:'DM Mono'}
 .ep-lbl:first-child{margin-top:0}
@@ -501,7 +412,7 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
     <button class="pmclose" onclick="closePlayer()">✕</button>
     <div class="pmtitle" id="pmtitle">Loading...</div>
     <div class="pmctrls">
-      <span id="proxyBadge" class="proxy-badge">🛡 PROXY</span>
+      <button id="shieldsBtn" class="shields-btn" onclick="toggleShields()">🛡️ SHIELDS UP</button>
       <button class="fsbtn" onclick="goFS()">⛶ FS</button>
       <button class="extbtn" onclick="openExtSheet()">📱 External</button>
     </div>
@@ -509,11 +420,8 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="srvrow" id="srvrow"></div>
   <div class="pframe" id="pframe">
     <div class="pload" id="pload"><div class="spin"></div><p id="ploadt">Loading stream...</p></div>
-    <!-- 
-      SANDBOX REMOVED: 
-      The sandbox attribute has been completely removed to prevent 'disable sandbox' detection errors.
-      Your ad-blocking security is now successfully driven by routing 100% of providers via the Cloudflare Worker proxy.
-    -->
+    
+    <!-- Immersive Client-Controlled Player Sandbox -->
     <iframe id="pif" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer"></iframe>
     
     <div class="perrbanner" id="perrbanner">
@@ -567,42 +475,33 @@ const LANG_NAMES = {
   th:'Thai','':"All"
 };
 
-// IMPROVEMENT: turned useProxy: true ON for all providers so our worker script filters everything
 const PROVIDERS = [
-  {label:'VidLink',    note:'Proxy 🛡', useProxy:true,
+  {label:'VidLink',    note:'Stable',
    movie: id=>`https://vidlink.pro/movie/${id}`,
    tv:   (id,s,e)=>`https://vidlink.pro/tv/${id}/${s}/${e}`},
-  {label:'VidSrc Pro', note:'Proxy 🛡', useProxy:true,
+  {label:'VidSrc Pro', note:'Fast',
    movie: id=>`https://vidsrc.pro/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidsrc.pro/embed/tv?tmdb=${id}&season=${s}&episode=${e}`},
-  {label:'VidSrc.fyi', note:'Proxy 🛡', useProxy:true,
+  {label:'VidSrc.fyi', note:'Multi',
    movie: id=>`https://vidsrc.fyi/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidsrc.fyi/embed/tv/${id}/${s}/${e}`},
-  {label:'2Embed',     note:'Proxy 🛡', useProxy:true,
+  {label:'2Embed',     note:'Legacy',
    movie: id=>`https://www.2embed.cc/embed/${id}`,
    tv:   (id,s,e)=>`https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`},
-  {label:'AutoEmbed',  note:'Proxy 🛡', useProxy:true,
+  {label:'AutoEmbed',  note:'HQ',
    movie: id=>`https://player.autoembed.cc/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`},
-  {label:'VidBinge',   note:'Proxy 🛡', useProxy:true,
+  {label:'VidBinge',   note:'Clean',
    movie: id=>`https://vidbinge.dev/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidbinge.dev/embed/tv/${id}/${s}/${e}`},
 ];
-
-function proxyUrl(embedUrl) {
-  try {
-    const u = new URL(embedUrl);
-    return WORKER_URL + '/x/' + u.hostname + u.pathname + u.search;
-  } catch(e) {
-    return embedUrl;
-  }
-}
 
 const S = {
   sec:'home', genre:0, lang:'',
   curItem:null, season:1, ep:1, prov:0,
   gridData:[], gridPage:0, gridPS:24,
   streamUrl:'', directUrl:'', imdbCache:{},
+  shieldsUp: true // Client Adblock Shields
 };
 
 async function api(path, params={}) {
@@ -867,6 +766,7 @@ async function startPlay(item) {
   document.getElementById('pmtitle').textContent = item.title || 'Loading...';
   hideBanner();
   buildServerRow();
+  updateShieldsBtn();
   if(item.type === 'tv') {
     document.getElementById('eppick').style.display = '';
     await buildEpPicker(item.id);
@@ -912,13 +812,30 @@ function pickEp(ep, el) {
   loadCurrentSource();
 }
 
+function toggleShields() {
+  S.shieldsUp = !S.shieldsUp;
+  updateShieldsBtn();
+  toast(S.shieldsUp ? '🛡️ Shields Active: Popups blocked' : '⚠️ Shields Off: Direct Player Compatibility Mode');
+  loadCurrentSource();
+}
+
+function updateShieldsBtn() {
+  const btn = document.getElementById('shieldsBtn');
+  if(S.shieldsUp) {
+    btn.className = "shields-btn";
+    btn.innerHTML = "🛡️ SHIELDS UP";
+  } else {
+    btn.className = "shields-btn off";
+    btn.innerHTML = "⚠️ SHIELDS OFF";
+  }
+}
+
 function loadCurrentSource() {
   const p = PROVIDERS[S.prov];
   const direct = S.curItem.type === 'tv'
     ? p.tv(S.curItem.id, S.season, S.ep)
     : p.movie(S.curItem.id);
-  const proxied = p.useProxy ? proxyUrl(direct) : direct;
-  loadFrame(proxied, direct, p.label, p.useProxy);
+  loadFrame(direct, p.label);
 }
 
 function switchProv(idx, el) {
@@ -930,28 +847,24 @@ function switchProv(idx, el) {
 }
 
 let _loadTimer;
-function loadFrame(proxiedUrl, directUrl, label, isProxy) {
-  S.streamUrl = proxiedUrl;
-  S.directUrl = directUrl;
+function loadFrame(url, label) {
+  S.streamUrl = url;
+  S.directUrl = url;
 
   const pload = document.getElementById('pload');
   const pif   = document.getElementById('pif');
-  const badge = document.getElementById('proxyBadge');
-
-  if(isProxy) {
-    badge.className = 'proxy-badge';
-    badge.textContent = '🛡 PROXY';
-  } else {
-    badge.className = 'proxy-badge off';
-    badge.textContent = '⚠ DIRECT';
-  }
 
   hideBanner();
   pload.classList.remove('gone');
-  document.getElementById('ploadt').textContent = isProxy
-    ? `Loading via proxy from ${label}...`
-    : `Loading from ${label}...`;
+  document.getElementById('ploadt').textContent = `Requesting stream from ${label}...`;
   pif.style.opacity = '0';
+
+  // Toggle Shields Sandbox dynamically based on State
+  if (S.shieldsUp) {
+    pif.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
+  } else {
+    pif.removeAttribute('sandbox');
+  }
 
   pif.src = 'about:blank';
   clearTimeout(_loadTimer);
@@ -969,11 +882,11 @@ function loadFrame(proxiedUrl, directUrl, label, isProxy) {
       pif.style.opacity = '1';
       showBanner('Server unavailable');
     };
-    pif.src = proxiedUrl;
+    pif.src = url;
     _loadTimer = setTimeout(function(){
       pload.classList.add('gone');
       pif.style.opacity = '1';
-    }, 18000);
+    }, 12000);
   }, 80);
 }
 
@@ -1011,7 +924,7 @@ function goFS() {
 }
 
 function openExtSheet() {
-  const url = S.directUrl || S.streamUrl;
+  const url = S.directUrl;
   if(!url) { toast('Wait for stream to load'); return; }
   const title = encodeURIComponent(S.curItem?.title||'Stream');
   const mk = pkg => `intent:${url}#Intent;action=android.intent.action.VIEW;type=video/*;${pkg?`package=${pkg};`:''}S.title=${title};S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore;end`;
