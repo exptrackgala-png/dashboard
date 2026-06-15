@@ -875,23 +875,12 @@ function loadFrame(url, label, isProxy) {
   
   if (isProxy) {
     document.getElementById('ploadt').textContent = `Shielding & loading ${label}...`;
-    pif.removeAttribute('sandbox'); // Allow cross-origin inside proxy since worker blocks ads
   } else {
     document.getElementById('ploadt').textContent = `Direct load from ${label}...`;
-    // If shield is UP but provider is directOnly (VidLink), apply a strict browser sandbox as fallback
-    if (S.shieldsUp) pif.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
-    else pif.removeAttribute('sandbox');
   }
 
   pif.style.opacity = '0';
-
   pif.removeAttribute('sandbox'); // Removed to prevent player detection
-
-  let finalUrl = url;
-  if (S.shieldsUp) {
-    // Route through the Einstein-level Cloudflare Network proxy
-    finalUrl = WORKER_URL + '/api/shield?url=' + encodeURIComponent(url);
-  }
 
   pif.src = 'about:blank';
   clearTimeout(_loadTimer);
@@ -909,7 +898,7 @@ function loadFrame(url, label, isProxy) {
       pif.style.opacity = '1';
       showBanner('Server unavailable');
     };
-    pif.src = finalUrl;
+    pif.src = url;
     _loadTimer = setTimeout(function(){
       pload.classList.add('gone');
       pif.style.opacity = '1';
