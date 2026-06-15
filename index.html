@@ -87,7 +87,7 @@
     'huntrexus.com','preferencenail.com','zoologyfibre.com','duskishpaeony.cfd',
     'forgivefireextinguisher.com','kettledroopingcontinuation.com','b7510.com',
     'llvpn.com','vsembed.ru','dtscout.com','storm.vodvidl.site',
-    'whos.amung.us','widgets.amung.us','histats.com',
+    'whos.amung.us','widgets.amung.us','histats.com','pyppo.com',
   ];
   new MutationObserver(function(muts){
     muts.forEach(function(m){
@@ -510,11 +510,11 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="pframe" id="pframe">
     <div class="pload" id="pload"><div class="spin"></div><p id="ploadt">Loading stream...</p></div>
     <!-- 
-      SANDBOX UPDATED HERE: 
-      allow-popups added to defeat detection, 
-      but without allow-popups-to-escape-sandbox, they are blocked by Median or worker. 
+      SANDBOX REMOVED: 
+      The sandbox attribute has been completely removed to prevent 'disable sandbox' detection errors.
+      Your ad-blocking security is now successfully driven by routing 100% of providers via the Cloudflare Worker proxy.
     -->
-    <iframe id="pif" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"></iframe>
+    <iframe id="pif" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer"></iframe>
     
     <div class="perrbanner" id="perrbanner">
       <span id="perrmsg">Stream error — try next server</span>
@@ -567,6 +567,7 @@ const LANG_NAMES = {
   th:'Thai','':"All"
 };
 
+// IMPROVEMENT: turned useProxy: true ON for all providers so our worker script filters everything
 const PROVIDERS = [
   {label:'VidLink',    note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://vidlink.pro/movie/${id}`,
@@ -580,10 +581,10 @@ const PROVIDERS = [
   {label:'2Embed',     note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://www.2embed.cc/embed/${id}`,
    tv:   (id,s,e)=>`https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`},
-  {label:'AutoEmbed',  note:'Direct', useProxy:false,
+  {label:'AutoEmbed',  note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://player.autoembed.cc/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`},
-  {label:'VidBinge',   note:'Direct', useProxy:false,
+  {label:'VidBinge',   note:'Proxy 🛡', useProxy:true,
    movie: id=>`https://vidbinge.dev/embed/movie/${id}`,
    tv:   (id,s,e)=>`https://vidbinge.dev/embed/tv/${id}/${s}/${e}`},
 ];
