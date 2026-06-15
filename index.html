@@ -475,25 +475,32 @@ const LANG_NAMES = {
   th:'Thai','':"All"
 };
 
+// Expanded Provider Array with IMDB Support and Shield Bypasses
 const PROVIDERS = [
-  {label:'VidLink',    note:'Stable',
-   movie: id=>`https://vidlink.pro/movie/${id}`,
-   tv:   (id,s,e)=>`https://vidlink.pro/tv/${id}/${s}/${e}`},
-  {label:'VidSrc Pro', note:'Fast',
-   movie: id=>`https://vidsrc.pro/embed/movie/${id}`,
-   tv:   (id,s,e)=>`https://vidsrc.pro/embed/tv?tmdb=${id}&season=${s}&episode=${e}`},
-  {label:'VidSrc.fyi', note:'Multi',
-   movie: id=>`https://vidsrc.fyi/embed/movie/${id}`,
-   tv:   (id,s,e)=>`https://vidsrc.fyi/embed/tv/${id}/${s}/${e}`},
-  {label:'2Embed',     note:'Legacy',
-   movie: id=>`https://www.2embed.cc/embed/${id}`,
-   tv:   (id,s,e)=>`https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`},
-  {label:'AutoEmbed',  note:'HQ',
-   movie: id=>`https://player.autoembed.cc/embed/movie/${id}`,
-   tv:   (id,s,e)=>`https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`},
-  {label:'VidBinge',   note:'Clean',
-   movie: id=>`https://vidbinge.dev/embed/movie/${id}`,
-   tv:   (id,s,e)=>`https://vidbinge.dev/embed/tv/${id}/${s}/${e}`},
+  {label:'VidLink',    note:'Direct HD', directOnly: true,
+   movie: (id, imdb) => `https://vidlink.pro/movie/${id}`,
+   tv:   (id, imdb, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`},
+  {label:'SuperEmbed', note:'Proxy Fast',
+   movie: (id, imdb) => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1`,
+   tv:   (id, imdb, s, e) => `https://multiembed.mov/directstream.php?video_id=${id}&tmdb=1&s=${s}&e=${e}`},
+  {label:'VidSrc Pro', note:'Proxy HD',
+   movie: (id, imdb) => `https://vidsrc.pro/embed/movie/${id}`,
+   tv:   (id, imdb, s, e) => `https://vidsrc.pro/embed/tv?tmdb=${id}&season=${s}&episode=${e}`},
+  {label:'VidSrc FYI', note:'Proxy Multi',
+   movie: (id, imdb) => `https://vidsrc.fyi/embed/movie/${id}`,
+   tv:   (id, imdb, s, e) => `https://vidsrc.fyi/embed/tv/${id}/${s}/${e}`},
+  {label:'VidSrc Net', note:'Proxy (IMDB)',
+   movie: (id, imdb) => `https://vidsrc.net/embed/movie?imdb=${imdb}`,
+   tv:   (id, imdb, s, e) => `https://vidsrc.net/embed/tv?imdb=${imdb}&season=${s}&episode=${e}`},
+  {label:'AutoEmbed',  note:'Proxy',
+   movie: (id, imdb) => `https://player.autoembed.cc/embed/movie/${id}`,
+   tv:   (id, imdb, s, e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`},
+  {label:'2Embed',     note:'Proxy Legacy',
+   movie: (id, imdb) => `https://www.2embed.cc/embed/${id}`,
+   tv:   (id, imdb, s, e) => `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`},
+  {label:'Smashy',     note:'Proxy Alt',
+   movie: (id, imdb) => `https://embed.smashystream.com/playere.php?tmdb=${id}`,
+   tv:   (id, imdb, s, e) => `https://embed.smashystream.com/playere.php?tmdb=${id}&season=${s}&episode=${e}`}
 ];
 
 const S = {
@@ -501,7 +508,7 @@ const S = {
   curItem:null, season:1, ep:1, prov:0,
   gridData:[], gridPage:0, gridPS:24,
   streamUrl:'', directUrl:'', imdbCache:{},
-  shieldsUp: true // Client Adblock Shields
+  shieldsUp: true 
 };
 
 async function api(path, params={}) {
@@ -815,7 +822,7 @@ function pickEp(ep, el) {
 function toggleShields() {
   S.shieldsUp = !S.shieldsUp;
   updateShieldsBtn();
-  toast(S.shieldsUp ? '🛡️ Shields Active: Deep Proxy Network Filter' : '⚠️ Shields Off: Direct Player Connection');
+  toast(S.shieldsUp ? '🛡️ Shields Active: Popups blocked' : '⚠️ Shields Off: Direct Player Compatibility Mode');
   loadCurrentSource();
 }
 
@@ -830,12 +837,21 @@ function updateShieldsBtn() {
   }
 }
 
-function loadCurrentSource() {
+async function loadCurrentSource() {
   const p = PROVIDERS[S.prov];
+  
+  // Fetch IMDB ID if missing (Cache prevents double fetching)
+  const imdb = S.curItem.id ? await getImdb(S.curItem.id, S.curItem.type) : '';
+  
   const direct = S.curItem.type === 'tv'
-    ? p.tv(S.curItem.id, S.season, S.ep)
-    : p.movie(S.curItem.id);
-  loadFrame(direct, p.label);
+    ? p.tv(S.curItem.id, imdb, S.season, S.ep)
+    : p.movie(S.curItem.id, imdb);
+    
+  // If Shields are UP and provider doesn't strictly forbid proxying, route to Cloudflare Worker
+  const isProxy = S.shieldsUp && !p.directOnly;
+  const url = isProxy ? `${WORKER_URL}/api/shield?url=${encodeURIComponent(direct)}` : direct;
+  
+  loadFrame(url, p.label, isProxy);
 }
 
 function switchProv(idx, el) {
@@ -847,16 +863,26 @@ function switchProv(idx, el) {
 }
 
 let _loadTimer;
-function loadFrame(url, label) {
+function loadFrame(url, label, isProxy) {
   S.streamUrl = url;
-  S.directUrl = url;
+  S.directUrl = url.includes('/api/shield') ? new URL(url).searchParams.get('url') : url;
 
   const pload = document.getElementById('pload');
   const pif   = document.getElementById('pif');
 
   hideBanner();
   pload.classList.remove('gone');
-  document.getElementById('ploadt').textContent = `Requesting stream from ${label}...`;
+  
+  if (isProxy) {
+    document.getElementById('ploadt').textContent = `Shielding & loading ${label}...`;
+    pif.removeAttribute('sandbox'); // Allow cross-origin inside proxy since worker blocks ads
+  } else {
+    document.getElementById('ploadt').textContent = `Direct load from ${label}...`;
+    // If shield is UP but provider is directOnly (VidLink), apply a strict browser sandbox as fallback
+    if (S.shieldsUp) pif.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
+    else pif.removeAttribute('sandbox');
+  }
+
   pif.style.opacity = '0';
 
   pif.removeAttribute('sandbox'); // Removed to prevent player detection
