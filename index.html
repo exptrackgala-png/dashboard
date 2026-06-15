@@ -11,28 +11,35 @@
 <script>
 (function(){
   'use strict';
-  var _fakeWin = {
-    closed:false,name:'',opener:null,
-    close:function(){this.closed=true;},focus:function(){},blur:function(){},
-    postMessage:function(){},stop:function(){},print:function(){},alert:function(){},
-    confirm:function(){return false;},prompt:function(){return null;},
-    resizeTo:function(){},moveTo:function(){},scrollTo:function(){},scrollBy:function(){},
-    document:{
-      write:function(){},writeln:function(){},
-      open:function(){return this;},close:function(){},
-      getElementById:function(){return null;},querySelector:function(){return null;},
-      body:{innerHTML:''},
-    },
-    location:{
-      href:'about:blank',hostname:'',pathname:'/',
-      assign:function(){},replace:function(){},reload:function(){},
-    },
-    history:{back:function(){},forward:function(){},go:function(){}},
-    screen:{width:0,height:0},
-  };
-  _fakeWin.window=_fakeWin;_fakeWin.self=_fakeWin;_fakeWin.top=_fakeWin;_fakeWin.parent=_fakeWin;
-  window.open=function(){return _fakeWin;};
-  window.showModalDialog=function(){return null;};
+  
+  /* ── Deep Proxy Popup Killer (Bypasses Sandbox Detection Checks) ── */
+  var fallbackFn = function() { return fallbackProxy; };
+  var handler = { get: function(t, p) { return p in t ? t[p] : fallbackFn; } };
+  var fallbackProxy = new Proxy({
+    closed: false, name: '', opener: null,
+    close: function(){ this.closed = true; }, focus: function(){}, blur: function(){},
+    postMessage: function(){}, stop: function(){}, print: function(){}, alert: function(){},
+    confirm: function(){ return false; }, prompt: function(){ return null; },
+    resizeTo: function(){}, moveTo: function(){}, scrollTo: function(){}, scrollBy: function(){},
+    document: new Proxy({
+      write: function(){}, writeln: function(){},
+      open: function(){ return this; }, close: function(){},
+      body: { innerHTML: '' }, getElementById: function(){ return null; }, querySelector: function(){ return null; }
+    }, handler),
+    location: { href: 'about:blank', hostname: '', pathname: '/', assign: function(){}, replace: function(){}, reload: function(){} },
+    history: { back: function(){}, forward: function(){}, go: function(){} },
+    screen: { width: 0, height: 0 }
+  }, handler);
+
+  // Mask override as native code execution
+  var customOpen = function() { return fallbackProxy; };
+  Object.defineProperty(customOpen, 'toString', {
+    value: function() { return "function open() { [native code] }"; },
+    writable: false, configurable: false
+  });
+  window.open = customOpen;
+  window.showModalDialog = function(){ return null; };
+
   (function(){
     var _oa=location.assign.bind(location),_or=location.replace.bind(location);
     function same(u){
@@ -140,7 +147,7 @@
     if(typeof fn==='string'&&/window\.open|location\.href/i.test(fn))return 0;
     return _rST.apply(this,arguments);
   };
-  console.info('%c[PopupKiller] 6 layers active','color:#e8c97e;font-weight:bold');
+  console.info('%c[PopupKiller] 6 layers active (Stealth Enabled)','color:#e8c97e;font-weight:bold');
 })();
 </script>
 
@@ -502,7 +509,13 @@ footer{padding:20px 16px;border-top:1px solid var(--brd);text-align:center;color
   <div class="srvrow" id="srvrow"></div>
   <div class="pframe" id="pframe">
     <div class="pload" id="pload"><div class="spin"></div><p id="ploadt">Loading stream...</p></div>
-    <iframe id="pif" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer"></iframe>
+    <!-- 
+      SANDBOX UPDATED HERE: 
+      allow-popups added to defeat detection, 
+      but without allow-popups-to-escape-sandbox, they are blocked by Median or worker. 
+    -->
+    <iframe id="pif" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"></iframe>
+    
     <div class="perrbanner" id="perrbanner">
       <span id="perrmsg">Stream error — try next server</span>
       <button class="errnxt" onclick="nextServer()">Try Next ▶</button>
@@ -575,10 +588,6 @@ const PROVIDERS = [
    tv:   (id,s,e)=>`https://vidbinge.dev/embed/tv/${id}/${s}/${e}`},
 ];
 
-/*
- * CHANGED: proxyUrl now builds /x/<host>/<path> URLs
- * instead of /proxy?url=... — this is the unified proxy route
- */
 function proxyUrl(embedUrl) {
   try {
     const u = new URL(embedUrl);
@@ -902,10 +911,6 @@ function pickEp(ep, el) {
   loadCurrentSource();
 }
 
-/*
- * CHANGED: loadCurrentSource computes BOTH direct and proxied URLs
- * upfront, then passes them separately to loadFrame
- */
 function loadCurrentSource() {
   const p = PROVIDERS[S.prov];
   const direct = S.curItem.type === 'tv'
@@ -923,10 +928,6 @@ function switchProv(idx, el) {
   loadCurrentSource();
 }
 
-/*
- * CHANGED: loadFrame now takes both proxiedUrl and directUrl explicitly
- * No more URL parsing to extract the original
- */
 let _loadTimer;
 function loadFrame(proxiedUrl, directUrl, label, isProxy) {
   S.streamUrl = proxiedUrl;
