@@ -815,7 +815,7 @@ function pickEp(ep, el) {
 function toggleShields() {
   S.shieldsUp = !S.shieldsUp;
   updateShieldsBtn();
-  toast(S.shieldsUp ? '🛡️ Shields Active: Popups blocked' : '⚠️ Shields Off: Direct Player Compatibility Mode');
+  toast(S.shieldsUp ? '🛡️ Shields Active: Deep Proxy Network Filter' : '⚠️ Shields Off: Direct Player Connection');
   loadCurrentSource();
 }
 
@@ -859,11 +859,12 @@ function loadFrame(url, label) {
   document.getElementById('ploadt').textContent = `Requesting stream from ${label}...`;
   pif.style.opacity = '0';
 
-  // Toggle Shields Sandbox dynamically based on State
+  pif.removeAttribute('sandbox'); // Removed to prevent player detection
+
+  let finalUrl = url;
   if (S.shieldsUp) {
-    pif.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
-  } else {
-    pif.removeAttribute('sandbox');
+    // Route through the Einstein-level Cloudflare Network proxy
+    finalUrl = WORKER_URL + '/api/shield?url=' + encodeURIComponent(url);
   }
 
   pif.src = 'about:blank';
@@ -882,7 +883,7 @@ function loadFrame(url, label) {
       pif.style.opacity = '1';
       showBanner('Server unavailable');
     };
-    pif.src = url;
+    pif.src = finalUrl;
     _loadTimer = setTimeout(function(){
       pload.classList.add('gone');
       pif.style.opacity = '1';
